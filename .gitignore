@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Builds and coverage
+dist/
+build/
+.next/
+coverage/
+*.tsbuildinfo
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/
+
+# Mobile and native artifacts
+android/.gradle/
+android/local.properties
+ios/Pods/
+*.keystore
+*.jks
+
+# Infrastructure state
+.terraform/
+*.tfstate
+*.tfstate.*
+
+# Temporary files
+tmp/
+.cache/
