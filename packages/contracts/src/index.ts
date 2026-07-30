@@ -111,3 +111,23 @@ export {
   type TransferFeeBreakdown,
   type TransferStatus,
 } from './transfer.js';
+
+export {
+  PAYMENT_CHANNELS,
+  PAYMENT_STATUSES,
+  isPaymentChannel,
+  isPaymentStatus,
+  type CreatePaymentCommand,
+  type Payment,
+  type PaymentChannel,
+  type PaymentFeeBreakdown,
+  type PaymentStatus,
+} from './payment.js';
+
+export {
+  PAYMENT_REQUEST_STATUSES,
+  isPaymentRequestStatus,
+  type CreatePaymentRequestCommand,
+  type PaymentRequest,
+  type PaymentRequestStatus,
+} from './payment-request.js';
