@@ -220,3 +220,29 @@ export {
   type FeatureFlagTargeting,
   type UpdateFeatureFlagCommand,
 } from './administration.js';
+
+export {
+  NOTIFICATION_CHANNELS,
+  NOTIFICATION_STATUSES,
+  isNotificationChannel,
+  isNotificationStatus,
+  type NotificationChannel,
+  type NotificationDelivery,
+  type NotificationRecipient,
+  type NotificationStatus,
+  type SendNotificationCommand,
+} from './notification.js';
+
+export {
+  SUPPORT_TICKET_CATEGORIES,
+  SUPPORT_TICKET_PRIORITIES,
+  SUPPORT_TICKET_STATUSES,
+  isSupportTicketStatus,
+  type CreateSupportTicketCommand,
+  type SupportMessage,
+  type SupportTicket,
+  type SupportTicketCategory,
+  type SupportTicketPriority,
+  type SupportTicketStatus,
+  type UpdateSupportTicketCommand,
+} from './support.js';
