@@ -36,3 +36,13 @@ export {
   type PageRequest,
   type PageResponse,
 } from './pagination.js';
+
+export {
+  AUDIT_OUTCOMES,
+  isAuditOutcome,
+  type AuditActor,
+  type AuditActorType,
+  type AuditContext,
+  type AuditEvent,
+  type AuditOutcome,
+} from './audit.js';
