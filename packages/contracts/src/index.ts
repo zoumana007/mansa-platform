@@ -94,3 +94,20 @@ export {
   type ReviewKycCaseCommand,
   type SubmitKycCaseCommand,
 } from './kyc.js';
+
+export {
+  WALLET_STATUSES,
+  isWalletStatus,
+  type Wallet,
+  type WalletBalance,
+  type WalletStatus,
+} from './wallet.js';
+
+export {
+  TRANSFER_STATUSES,
+  isTransferStatus,
+  type CreateInternalTransferCommand,
+  type InternalTransfer,
+  type TransferFeeBreakdown,
+  type TransferStatus,
+} from './transfer.js';
