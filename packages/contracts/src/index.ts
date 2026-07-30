@@ -151,3 +151,26 @@ export {
   type UpdateCardControlsCommand,
   type UpdateCardLimitsCommand,
 } from './card.js';
+
+export {
+  MERCHANT_MEMBER_ROLES,
+  MERCHANT_MEMBER_STATUSES,
+  MERCHANT_STATUSES,
+  SETTLEMENT_STATUSES,
+  isMerchantMemberRole,
+  isMerchantMemberStatus,
+  isMerchantStatus,
+  isSettlementStatus,
+  type CreateMerchantCommand,
+  type CreateMerchantLocationCommand,
+  type InviteMerchantMemberCommand,
+  type Merchant,
+  type MerchantDashboardSummary,
+  type MerchantLocation,
+  type MerchantMember,
+  type MerchantMemberRole,
+  type MerchantMemberStatus,
+  type MerchantStatus,
+  type Settlement,
+  type SettlementStatus,
+} from './merchant.js';
