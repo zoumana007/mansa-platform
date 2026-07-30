@@ -46,3 +46,33 @@ export {
   type AuditEvent,
   type AuditOutcome,
 } from './audit.js';
+
+export {
+  SESSION_STATUSES,
+  USER_STATUSES,
+  VERIFICATION_STATUSES,
+  isSessionStatus,
+  isUserStatus,
+  isVerificationStatus,
+  type AuthenticatedSession,
+  type AuthenticationTokens,
+  type DeviceSession,
+  type SessionStatus,
+  type UserIdentity,
+  type UserStatus,
+  type VerificationStatus,
+} from './identity.js';
+
+export {
+  OTP_PURPOSES,
+  isOtpPurpose,
+  type AuthenticationResult,
+  type OtpChallenge,
+  type OtpPurpose,
+  type PasswordSignInCommand,
+  type RefreshSessionCommand,
+  type RegisterUserCommand,
+  type RequestOtpCommand,
+  type RevokeSessionCommand,
+  type VerifyOtpCommand,
+} from './authentication.js';
