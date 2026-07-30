@@ -21,3 +21,18 @@ export {
   type TransactionStatus,
   type TransactionType,
 } from './transaction.js';
+
+export {
+  API_ERROR_CODES,
+  isApiErrorCode,
+  type ApiErrorCode,
+  type ApiErrorDetails,
+  type ApiErrorResponse,
+} from './api-error.js';
+
+export {
+  normalizePageLimit,
+  type PageInfo,
+  type PageRequest,
+  type PageResponse,
+} from './pagination.js';
