@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  CLOSED
+}
+
+enum LedgerAccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}
+
+enum LedgerTransactionStatus {
+  PENDING
+  POSTED
+  REVERSED
+  FAILED
+}
+
+enum LedgerEntryDirection {
+  DEBIT
+  CREDIT
+}
+
+model User {
+  id        String     @id @default(uuid()) @db.Uuid
+  email     String?    @unique
+  phone     String?    @unique
+  status    UserStatus @default(PENDING)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  wallets   Wallet[]
+
+  @@index([status])
+}
+
+model Wallet {
+  id        String          @id @default(uuid()) @db.Uuid
+  userId    String          @db.Uuid
+  country   String          @db.Char(2)
+  label     String?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  user      User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+  accounts  LedgerAccount[]
+
+  @@index([userId])
+  @@index([country])
+}
+
+model LedgerAccount {
+  id        String            @id @default(uuid()) @db.Uuid
+  walletId  String?           @db.Uuid
+  code      String            @unique
+  name      String
+  type      LedgerAccountType
+  currency  String            @db.Char(3)
+  createdAt DateTime          @default(now())
+  wallet    Wallet?           @relation(fields: [walletId], references: [id], onDelete: Restrict)
+  entries   LedgerEntry[]
+
+  @@index([walletId])
+  @@index([type, currency])
+}
+
+model LedgerTransaction {
+  id             String                  @id @default(uuid()) @db.Uuid
+  reference      String                  @unique
+  idempotencyKey String?                 @unique
+  status         LedgerTransactionStatus @default(PENDING)
+  description    String?
+  postedAt       DateTime?
+  createdAt      DateTime                @default(now())
+  entries        LedgerEntry[]
+
+  @@index([status, createdAt])
+}
+
+model LedgerEntry {
+  id            String               @id @default(uuid()) @db.Uuid
+  transactionId String               @db.Uuid
+  accountId     String               @db.Uuid
+  direction     LedgerEntryDirection
+  amountMinor   BigInt
+  currency      String               @db.Char(3)
+  createdAt     DateTime             @default(now())
+  transaction   LedgerTransaction    @relation(fields: [transactionId], references: [id], onDelete: Restrict)
+  account       LedgerAccount        @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  @@index([transactionId])
+  @@index([accountId, createdAt])
+}
