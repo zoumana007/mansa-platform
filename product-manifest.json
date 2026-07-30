@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "project": "Mansa",
+  "documentationRepository": "zoumana007/mansa-docs",
+  "requiredProducts": [
+    { "id": "mobile-client", "path": "apps/mobile-client", "type": "mobile", "status": "scaffold-required" },
+    { "id": "mobile-merchant", "path": "apps/mobile-merchant", "type": "mobile", "status": "scaffold-required" },
+    { "id": "tpe-android", "path": "apps/tpe-android", "type": "android-terminal", "status": "scaffold-required" },
+    { "id": "mobile-admin-lite", "path": "apps/mobile-admin-lite", "type": "mobile", "status": "scaffold-required" },
+    { "id": "mobile-directory", "path": "apps/mobile-directory", "type": "mobile", "status": "scaffold-required" },
+    { "id": "public-web", "path": "apps/public-web", "type": "nextjs", "status": "scaffold-required" },
+    { "id": "business-web", "path": "apps/business-web", "type": "nextjs", "status": "scaffold-required" },
+    { "id": "admin-web", "path": "apps/admin-web", "type": "nextjs", "status": "scaffold-required" },
+    { "id": "api-gateway", "path": "apps/api-gateway", "type": "nestjs", "status": "scaffold-required" },
+    { "id": "ai-services", "path": "apps/ai-services", "type": "services", "status": "scaffold-required" },
+    { "id": "workers", "path": "apps/workers", "type": "workers", "status": "scaffold-required" }
+  ],
+  "requiredPackages": [
+    "packages/config",
+    "packages/contracts",
+    "packages/domain",
+    "packages/ui",
+    "packages/security",
+    "packages/observability"
+  ],
+  "requiredEnvironments": ["demo", "staging", "production"],
+  "rules": {
+    "noSecretsInRepository": true,
+    "financialAmountsInMinorUnits": true,
+    "doubleEntryLedger": true,
+    "idempotencyForFinancialCommands": true,
+    "rbacAndAbac": true,
+    "auditSensitiveActions": true,
+    "dualApprovalForCriticalActions": true,
+    "multiCountry": true,
+    "multiCurrency": true,
+    "multiLanguage": true
+  }
+}
