@@ -174,3 +174,24 @@ export {
   type Settlement,
   type SettlementStatus,
 } from './merchant.js';
+
+export {
+  TERMINAL_ENVIRONMENTS,
+  TERMINAL_PAYMENT_METHODS,
+  TERMINAL_STATUSES,
+  TERMINAL_TYPES,
+  isTerminalEnvironment,
+  isTerminalPaymentMethod,
+  isTerminalStatus,
+  isTerminalType,
+  type ActivateTerminalCommand,
+  type PaymentTerminal,
+  type RegisterTerminalCommand,
+  type TerminalEnvironment,
+  type TerminalHealthReport,
+  type TerminalPaymentMethod,
+  type TerminalSaleCommand,
+  type TerminalStatus,
+  type TerminalType,
+  type UpdateTerminalConfigurationCommand,
+} from './terminal.js';
