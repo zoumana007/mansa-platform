@@ -76,3 +76,21 @@ export {
   type RevokeSessionCommand,
   type VerifyOtpCommand,
 } from './authentication.js';
+
+export {
+  KYC_CASE_STATUSES,
+  KYC_DOCUMENT_TYPES,
+  KYC_LEVELS,
+  isKycCaseStatus,
+  isKycDocumentType,
+  isKycLevel,
+  type CreateKycDraftCommand,
+  type KycCase,
+  type KycCaseStatus,
+  type KycDocumentReference,
+  type KycDocumentType,
+  type KycLevel,
+  type KycProfileInput,
+  type ReviewKycCaseCommand,
+  type SubmitKycCaseCommand,
+} from './kyc.js';
