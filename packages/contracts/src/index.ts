@@ -195,3 +195,28 @@ export {
   type TerminalType,
   type UpdateTerminalConfigurationCommand,
 } from './terminal.js';
+
+export {
+  ADMIN_ACTION_RISK_LEVELS,
+  ADMIN_ENVIRONMENTS,
+  ADMIN_SCOPES,
+  APPROVAL_STATUSES,
+  isAdminActionRiskLevel,
+  isAdminEnvironment,
+  isAdminScope,
+  isApprovalStatus,
+  isValidRolloutPercentage,
+  type AdminActionRiskLevel,
+  type AdminActor,
+  type AdminEnvironment,
+  type AdminPermission,
+  type AdminRole,
+  type AdminScope,
+  type ApprovalRequest,
+  type ApprovalStatus,
+  type CreateApprovalRequestCommand,
+  type DecideApprovalRequestCommand,
+  type FeatureFlag,
+  type FeatureFlagTargeting,
+  type UpdateFeatureFlagCommand,
+} from './administration.js';
