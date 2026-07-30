@@ -131,3 +131,23 @@ export {
   type PaymentRequest,
   type PaymentRequestStatus,
 } from './payment-request.js';
+
+export {
+  CARD_NETWORKS,
+  CARD_STATUSES,
+  CARD_TYPES,
+  isCardNetwork,
+  isCardStatus,
+  isCardType,
+  isFinalCardStatus,
+  type CardNetwork,
+  type CardReference,
+  type CardSpendingLimits,
+  type CardStatus,
+  type CardType,
+  type CardUsageControls,
+  type ChangeCardStatusCommand,
+  type CreateCardCommand,
+  type UpdateCardControlsCommand,
+  type UpdateCardLimitsCommand,
+} from './card.js';
