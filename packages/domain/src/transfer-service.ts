@@ -79,6 +79,16 @@ export class TransferService {
     }
 
     const execution = await this.dependencies.executeAtomically(command);
+    if (
+      execution === null ||
+      typeof execution !== "object" ||
+      typeof execution.transactionId !== "string"
+    ) {
+      throw new InvalidTransferExecutionError(
+        "executor must return a string transactionId",
+      );
+    }
+
     const transactionId = execution.transactionId.trim();
     if (transactionId.length === 0) {
       throw new InvalidTransferExecutionError(
