@@ -108,6 +108,25 @@ test("refuse un identifiant de transaction vide", async () => {
   assert.equal(repo.saved.length, 0);
 });
 
+test("refuse un résultat d’exécution sans transactionId chaîne", async () => {
+  const invalidExecutions = [null, undefined, {}, { transactionId: 42 }];
+
+  for (const invalidExecution of invalidExecutions) {
+    const repo = repository();
+    const service = new TransferService({
+      repository: repo,
+      now: () => new Date("2026-07-31T18:30:00.000Z"),
+      executeAtomically: async () => invalidExecution,
+    });
+
+    await assert.rejects(
+      () => service.execute(command()),
+      InvalidTransferExecutionError,
+    );
+    assert.equal(repo.saved.length, 0);
+  }
+});
+
 test("rejoue un transfert existant sans nouvelle mutation", async () => {
   const completed = TransferResult.completed(
     "transfer-1",
