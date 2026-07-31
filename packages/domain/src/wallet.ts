@@ -11,9 +11,25 @@ export interface CreateWalletInput {
   createdAt?: Date;
 }
 
+export interface WalletSnapshot {
+  id: string;
+  ownerId: string;
+  currency: CurrencyCode;
+  availableBalanceMinor: bigint;
+  status: WalletStatus;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 function assertIdentifier(value: string, field: string): void {
   if (value.trim().length === 0) {
     throw new Error(`${field} must not be empty`);
+  }
+}
+
+function assertValidDate(value: Date, field: string): void {
+  if (Number.isNaN(value.getTime())) {
+    throw new Error(`${field} must be a valid date`);
   }
 }
 
@@ -47,6 +63,7 @@ export class Wallet {
     }
 
     const createdAt = new Date(input.createdAt ?? new Date());
+    assertValidDate(createdAt, "Wallet creation date");
 
     return new Wallet(
       input.id,
@@ -56,6 +73,45 @@ export class Wallet {
       input.status ?? "ACTIVE",
       createdAt,
       new Date(createdAt),
+    );
+  }
+
+  /**
+   * Rehydrates a wallet from a trusted persistence snapshot while rechecking
+   * the aggregate invariants. Application code must use create() for new wallets.
+   */
+  static restore(snapshot: WalletSnapshot): Wallet {
+    assertIdentifier(snapshot.id, "Wallet id");
+    assertIdentifier(snapshot.ownerId, "Wallet owner id");
+
+    const createdAt = new Date(snapshot.createdAt);
+    const updatedAt = new Date(snapshot.updatedAt);
+    assertValidDate(createdAt, "Wallet creation date");
+    assertValidDate(updatedAt, "Wallet update date");
+
+    if (updatedAt.getTime() < createdAt.getTime()) {
+      throw new Error("Wallet update date cannot precede creation date");
+    }
+
+    const balance = Money.ofMinor(
+      snapshot.availableBalanceMinor,
+      snapshot.currency,
+    );
+    if (balance.isNegative()) {
+      throw new Error("Wallet cannot be restored with a negative balance");
+    }
+    if (snapshot.status === "CLOSED" && !balance.isZero()) {
+      throw new Error("A closed wallet must have a zero balance");
+    }
+
+    return new Wallet(
+      snapshot.id,
+      snapshot.ownerId,
+      snapshot.currency,
+      balance,
+      snapshot.status,
+      createdAt,
+      updatedAt,
     );
   }
 
@@ -69,6 +125,18 @@ export class Wallet {
 
   get updatedAt(): Date {
     return new Date(this.updatedAtValue);
+  }
+
+  toSnapshot(): WalletSnapshot {
+    return {
+      id: this.id,
+      ownerId: this.ownerId,
+      currency: this.currency,
+      availableBalanceMinor: this.balance.minor,
+      status: this.lifecycleStatus,
+      createdAt: new Date(this.createdAt),
+      updatedAt: new Date(this.updatedAtValue),
+    };
   }
 
   credit(amount: Money, occurredAt: Date = new Date()): void {
@@ -138,6 +206,7 @@ export class Wallet {
 
   private touch(occurredAt: Date): void {
     const nextUpdatedAt = new Date(occurredAt);
+    assertValidDate(nextUpdatedAt, "Wallet update date");
     if (nextUpdatedAt.getTime() < this.updatedAtValue.getTime()) {
       throw new Error("Wallet update date cannot move backwards");
     }
