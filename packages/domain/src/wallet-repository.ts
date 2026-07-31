@@ -10,8 +10,8 @@ export interface WalletSearchCriteria {
 /**
  * Persistence port for wallet aggregates.
  *
- * Implementations must preserve optimistic concurrency and must never expose
- * mutable persistence records as domain aggregates shared between requests.
+ * Production implementations must preserve optimistic concurrency and must
+ * never expose mutable persistence records shared between requests.
  */
 export interface WalletRepository {
   findById(id: string): Promise<Wallet | null>;
@@ -21,7 +21,9 @@ export interface WalletRepository {
 }
 
 /**
- * Minimal in-memory adapter intended for tests and local development only.
+ * Minimal in-memory adapter intended for isolated tests and local development.
+ * It deliberately keeps aggregate references and therefore must not be shared
+ * between requests or used as a production persistence mechanism.
  */
 export class InMemoryWalletRepository implements WalletRepository {
   private readonly wallets = new Map<string, Wallet>();
