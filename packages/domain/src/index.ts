@@ -4,6 +4,7 @@ export * from "./idempotency.js";
 export * from "./ledger-account.js";
 export * from "./ledger-balance.js";
 export * from "./ledger.js";
+export * from "./mansa-handle.js";
 export * from "./money.js";
 export * from "./rate.js";
 export * from "./transaction-event-publisher.js";
