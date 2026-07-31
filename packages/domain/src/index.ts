@@ -15,4 +15,5 @@ export * from "./transaction-service.js";
 export * from "./transaction-state.js";
 export * from "./transaction.js";
 export * from "./wallet-repository.js";
+export * from "./wallet-service.js";
 export * from "./wallet.js";
