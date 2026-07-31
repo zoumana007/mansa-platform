@@ -56,6 +56,21 @@ test("crée, persiste et publie une transaction", async () => {
   assert.equal(events[0].transactionReference, reference);
 });
 
+test("consulte une transaction existante", async () => {
+  const { service } = createHarness();
+
+  await service.create({
+    reference,
+    kind: "PAYMENT",
+    amount: Money.ofMinor(5_000n, "XOF"),
+  });
+
+  const transaction = await service.get(reference.toLowerCase());
+
+  assert.equal(transaction.current().reference, reference);
+  assert.equal(transaction.current().kind, "PAYMENT");
+});
+
 test("refuse une référence déjà utilisée", async () => {
   const { service } = createHarness();
   const input = {
@@ -93,6 +108,7 @@ test("fait évoluer une transaction et publie le changement", async () => {
 test("signale une transaction absente", async () => {
   const { service } = createHarness();
 
+  await assert.rejects(() => service.get(reference), TransactionNotFoundError);
   await assert.rejects(
     () => service.transition({ reference, to: "FAILED" }),
     TransactionNotFoundError,
