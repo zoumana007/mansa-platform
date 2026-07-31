@@ -1,8 +1,5 @@
 import { Money } from "./money.js";
-import {
-  TransactionReference,
-  type TransactionReferenceValue,
-} from "./transaction-reference.js";
+import { parseTransactionReference } from "./transaction-reference.js";
 import {
   assertTransactionTransition,
   type TransactionState,
@@ -16,7 +13,7 @@ export type TransactionKind =
   | "REFUND";
 
 export type TransactionSnapshot = Readonly<{
-  reference: TransactionReferenceValue;
+  reference: string;
   kind: TransactionKind;
   amount: Money;
   state: TransactionState;
@@ -35,17 +32,17 @@ export class Transaction {
   private constructor(private snapshot: TransactionSnapshot) {}
 
   static create(input: {
-    reference: TransactionReferenceValue;
+    reference: string;
     kind: TransactionKind;
     amount: Money;
     now?: Date;
   }): Transaction {
-    TransactionReference.parse(input.reference);
+    parseTransactionReference(input.reference);
     Transaction.assertPositiveAmount(input.amount);
     const now = input.now ?? new Date();
 
     return new Transaction({
-      reference: input.reference,
+      reference: input.reference.trim().toUpperCase(),
       kind: input.kind,
       amount: input.amount,
       state: "PENDING",
@@ -55,7 +52,7 @@ export class Transaction {
   }
 
   static restore(snapshot: TransactionSnapshot): Transaction {
-    TransactionReference.parse(snapshot.reference);
+    parseTransactionReference(snapshot.reference);
     Transaction.assertPositiveAmount(snapshot.amount);
 
     if (snapshot.updatedAt.getTime() < snapshot.createdAt.getTime()) {
@@ -64,6 +61,7 @@ export class Transaction {
 
     return new Transaction({
       ...snapshot,
+      reference: snapshot.reference.trim().toUpperCase(),
       createdAt: new Date(snapshot.createdAt),
       updatedAt: new Date(snapshot.updatedAt),
     });
