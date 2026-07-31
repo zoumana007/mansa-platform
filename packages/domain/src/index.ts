@@ -1,3 +1,4 @@
+export * from "./available-balance.js";
 export * from "./fee-policy.js";
 export * from "./ledger-account.js";
 export * from "./ledger-balance.js";
