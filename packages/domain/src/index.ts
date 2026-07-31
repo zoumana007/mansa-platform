@@ -6,6 +6,7 @@ export * from "./ledger-balance.js";
 export * from "./ledger.js";
 export * from "./money.js";
 export * from "./rate.js";
+export * from "./transaction-event.js";
 export * from "./transaction-reference.js";
 export * from "./transaction-repository.js";
 export * from "./transaction-state.js";
