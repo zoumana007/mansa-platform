@@ -41,6 +41,60 @@ test("crédite puis débite un montant dans la devise du wallet", () => {
   assert.equal(wallet.updatedAt.toISOString(), "2026-07-31T12:02:00.000Z");
 });
 
+test("restaure un wallet depuis un snapshot persistant valide", () => {
+  const wallet = Wallet.restore({
+    id: "wallet-restored",
+    ownerId: "user-restored",
+    currency: "XOF",
+    availableBalanceMinor: 25_000n,
+    status: "SUSPENDED",
+    createdAt,
+    updatedAt: new Date("2026-07-31T12:05:00.000Z"),
+  });
+
+  assert.equal(wallet.status, "SUSPENDED");
+  assert.equal(wallet.availableBalance.minor, 25_000n);
+  assert.deepEqual(wallet.toSnapshot(), {
+    id: "wallet-restored",
+    ownerId: "user-restored",
+    currency: "XOF",
+    availableBalanceMinor: 25_000n,
+    status: "SUSPENDED",
+    createdAt,
+    updatedAt: new Date("2026-07-31T12:05:00.000Z"),
+  });
+});
+
+test("refuse les snapshots persistants incohérents", () => {
+  assert.throws(
+    () =>
+      Wallet.restore({
+        id: "wallet-invalid-date",
+        ownerId: "user-1",
+        currency: "XOF",
+        availableBalanceMinor: 0n,
+        status: "ACTIVE",
+        createdAt,
+        updatedAt: new Date("2026-07-31T11:59:59.000Z"),
+      }),
+    /cannot precede creation date/,
+  );
+
+  assert.throws(
+    () =>
+      Wallet.restore({
+        id: "wallet-invalid-balance",
+        ownerId: "user-1",
+        currency: "XOF",
+        availableBalanceMinor: 1n,
+        status: "CLOSED",
+        createdAt,
+        updatedAt: createdAt,
+      }),
+    /closed wallet must have a zero balance/,
+  );
+});
+
 test("refuse un débit supérieur au solde disponible", () => {
   const wallet = createWallet();
 
