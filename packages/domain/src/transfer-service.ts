@@ -14,6 +14,13 @@ export class TransferIdentityConflictError extends Error {
   }
 }
 
+export class InvalidTransferExecutionError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "InvalidTransferExecutionError";
+  }
+}
+
 export type TransferExecutor = (
   command: TransferCommand,
 ) => Promise<Readonly<{ transactionId: string }>>;
@@ -48,7 +55,8 @@ export class TransferService {
     const existing = byTransferId ?? byIdempotencyKey;
     if (existing) {
       if (
-        (byTransferId && byIdempotencyKey &&
+        (byTransferId &&
+          byIdempotencyKey &&
           byTransferId.transactionId !== byIdempotencyKey.transactionId) ||
         existing.transferId !== command.transferId
       ) {
@@ -65,11 +73,23 @@ export class TransferService {
       );
     }
 
+    const completedAt = this.now();
+    if (!(completedAt instanceof Date) || Number.isNaN(completedAt.getTime())) {
+      throw new InvalidTransferExecutionError("completedAt must be a valid date");
+    }
+
     const execution = await this.dependencies.executeAtomically(command);
+    const transactionId = execution.transactionId.trim();
+    if (transactionId.length === 0) {
+      throw new InvalidTransferExecutionError(
+        "transactionId must not be empty",
+      );
+    }
+
     const result = TransferResult.completed(
       command.transferId,
-      execution.transactionId,
-      this.now(),
+      transactionId,
+      completedAt,
     );
 
     await this.dependencies.repository.saveCompleted({ command, result });
