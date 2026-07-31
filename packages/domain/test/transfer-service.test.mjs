@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  InvalidTransferExecutionError,
   Money,
   TransferCommand,
   TransferIdentityConflictError,
@@ -56,6 +57,55 @@ test("exécute et enregistre un nouveau transfert", async () => {
   assert.equal(result.transactionId, "transaction-1");
   assert.equal(repo.saved.length, 1);
   assert.equal(repo.saved[0].command.transferId, "transfer-1");
+});
+
+test("normalise l’identifiant de transaction retourné", async () => {
+  const repo = repository();
+  const service = new TransferService({
+    repository: repo,
+    now: () => new Date("2026-07-31T18:30:00.000Z"),
+    executeAtomically: async () => ({ transactionId: " transaction-1 " }),
+  });
+
+  const result = await service.execute(command());
+
+  assert.equal(result.transactionId, "transaction-1");
+  assert.equal(repo.saved[0].result.transactionId, "transaction-1");
+});
+
+test("refuse une date de complétion invalide avant toute mutation", async () => {
+  const repo = repository();
+  let executions = 0;
+  const service = new TransferService({
+    repository: repo,
+    now: () => new Date(Number.NaN),
+    executeAtomically: async () => {
+      executions += 1;
+      return { transactionId: "transaction-1" };
+    },
+  });
+
+  await assert.rejects(
+    () => service.execute(command()),
+    InvalidTransferExecutionError,
+  );
+  assert.equal(executions, 0);
+  assert.equal(repo.saved.length, 0);
+});
+
+test("refuse un identifiant de transaction vide", async () => {
+  const repo = repository();
+  const service = new TransferService({
+    repository: repo,
+    now: () => new Date("2026-07-31T18:30:00.000Z"),
+    executeAtomically: async () => ({ transactionId: "   " }),
+  });
+
+  await assert.rejects(
+    () => service.execute(command()),
+    InvalidTransferExecutionError,
+  );
+  assert.equal(repo.saved.length, 0);
 });
 
 test("rejoue un transfert existant sans nouvelle mutation", async () => {
