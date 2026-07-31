@@ -40,6 +40,11 @@ export function createWalletTransferExecutor(
   const now = dependencies.now ?? (() => new Date());
 
   return async (command: TransferCommand) => {
+    const transactionId = dependencies.nextTransactionId().trim();
+    if (transactionId.length === 0) {
+      throw new Error("transaction id must not be empty");
+    }
+
     const [source, destination] = await Promise.all([
       dependencies.wallets.findById(command.sourceWalletId),
       dependencies.wallets.findById(command.destinationWalletId),
@@ -69,11 +74,6 @@ export function createWalletTransferExecutor(
 
     await dependencies.wallets.save(source);
     await dependencies.wallets.save(destination);
-
-    const transactionId = dependencies.nextTransactionId().trim();
-    if (transactionId.length === 0) {
-      throw new Error("transaction id must not be empty");
-    }
 
     return { transactionId };
   };
