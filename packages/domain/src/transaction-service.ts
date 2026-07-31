@@ -37,6 +37,16 @@ export class TransactionService {
     this.now = dependencies.now ?? (() => new Date());
   }
 
+  async get(reference: string): Promise<Transaction> {
+    const transaction = await this.dependencies.repository.findByReference(reference);
+
+    if (!transaction) {
+      throw new TransactionNotFoundError(reference);
+    }
+
+    return transaction;
+  }
+
   async create(input: {
     reference: string;
     kind: TransactionKind;
@@ -70,14 +80,7 @@ export class TransactionService {
     reference: string;
     to: TransactionState;
   }): Promise<Transaction> {
-    const transaction = await this.dependencies.repository.findByReference(
-      input.reference,
-    );
-
-    if (!transaction) {
-      throw new TransactionNotFoundError(input.reference);
-    }
-
+    const transaction = await this.get(input.reference);
     const before = transaction.current();
     const now = this.now();
     transaction.transition(input.to, now);
