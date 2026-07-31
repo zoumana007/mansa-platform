@@ -1,5 +1,8 @@
 import type { CurrencyCode, Money } from "./money.js";
-import type { WalletRepository } from "./wallet-repository.js";
+import type {
+  WalletRepository,
+  WalletSearchCriteria,
+} from "./wallet-repository.js";
 import { Wallet } from "./wallet.js";
 
 export class WalletAlreadyExistsError extends Error {
@@ -41,6 +44,18 @@ export class WalletService {
     const wallet = Wallet.create({ ...input, createdAt: this.now() });
     await this.dependencies.repository.save(wallet);
     return wallet;
+  }
+
+  async get(walletId: string): Promise<Wallet> {
+    return this.requireWallet(walletId);
+  }
+
+  async listByOwnerId(ownerId: string): Promise<readonly Wallet[]> {
+    return this.dependencies.repository.findByOwnerId(ownerId);
+  }
+
+  async search(criteria: WalletSearchCriteria): Promise<readonly Wallet[]> {
+    return this.dependencies.repository.search(criteria);
   }
 
   async credit(input: { walletId: string; amount: Money }): Promise<Wallet> {
