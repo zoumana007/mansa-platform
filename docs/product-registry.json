@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "Mansa Platform Product Registry",
+  "version": "0.1.0",
+  "sourceOfTruth": "https://github.com/zoumana007/mansa-docs",
+  "products": [
+    {
+      "id": "mobile-client",
+      "type": "mobile",
+      "path": "apps/mobile-client",
+      "technology": "React Native + TypeScript",
+      "required": true
+    },
+    {
+      "id": "mobile-merchant",
+      "type": "mobile",
+      "path": "apps/mobile-merchant",
+      "technology": "React Native + TypeScript",
+      "required": true
+    },
+    {
+      "id": "tpe-android",
+      "type": "terminal",
+      "path": "apps/tpe-android",
+      "technology": "Android/Kotlin with isolated hardware adapters",
+      "required": true
+    },
+    {
+      "id": "mobile-admin-lite",
+      "type": "mobile",
+      "path": "apps/mobile-admin-lite",
+      "technology": "React Native + TypeScript",
+      "required": true
+    },
+    {
+      "id": "mobile-directory",
+      "type": "mobile",
+      "path": "apps/mobile-directory",
+      "technology": "React Native + TypeScript",
+      "required": true
+    },
+    {
+      "id": "public-web",
+      "type": "web",
+      "path": "apps/public-web",
+      "technology": "Next.js App Router + React + TypeScript",
+      "required": true
+    },
+    {
+      "id": "business-web",
+      "type": "web",
+      "path": "apps/business-web",
+      "technology": "Next.js App Router + React + TypeScript",
+      "required": true
+    },
+    {
+      "id": "admin-web",
+      "type": "web",
+      "path": "apps/admin-web",
+      "technology": "Next.js App Router + React + TypeScript",
+      "required": true
+    },
+    {
+      "id": "api-gateway",
+      "type": "backend",
+      "path": "apps/api-gateway",
+      "technology": "NestJS + TypeScript + Prisma",
+      "required": true
+    },
+    {
+      "id": "ai-services",
+      "type": "service",
+      "path": "apps/ai-services",
+      "technology": "Isolated AI services with typed contracts",
+      "required": true
+    },
+    {
+      "id": "workers",
+      "type": "service",
+      "path": "apps/workers",
+      "technology": "TypeScript workers and event consumers",
+      "required": true
+    }
+  ],
+  "sharedPackages": [
+    "packages/config",
+    "packages/contracts",
+    "packages/domain",
+    "packages/ui",
+    "packages/security",
+    "packages/observability"
+  ],
+  "infrastructure": [
+    "infra",
+    ".github/workflows"
+  ],
+  "rules": {
+    "doNotRemoveMissingScaffolds": true,
+    "noSecretsInRepository": true,
+    "strictTypeScriptWhereApplicable": true,
+    "financialAmountsUseMinorUnits": true,
+    "financialMutationsRequireIdempotency": true,
+    "criticalAdminActionsRequireAudit": true,
+    "productionCriticalChangesMayRequireDualApproval": true
+  }
+}
