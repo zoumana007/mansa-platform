@@ -73,6 +73,11 @@ export class JournalEntry {
           "all journal lines must use the same currency",
         );
       }
+      if (line.side !== "DEBIT" && line.side !== "CREDIT") {
+        throw new InvalidJournalEntryError(
+          "side must be either DEBIT or CREDIT",
+        );
+      }
 
       if (line.side === "DEBIT") debitTotal += line.amountMinor;
       else creditTotal += line.amountMinor;
