@@ -16,10 +16,13 @@ export class InvalidTransferCommandError extends Error {
   }
 }
 
-function assertNonEmpty(value: string, field: string): void {
-  if (value.trim().length === 0) {
+function normalizeRequired(value: string, field: string): string {
+  const normalized = value.trim();
+  if (normalized.length === 0) {
     throw new InvalidTransferCommandError(`${field} must not be empty`);
   }
+
+  return normalized;
 }
 
 /**
@@ -40,12 +43,21 @@ export class TransferCommand {
   ) {}
 
   static create(input: TransferCommandInput): TransferCommand {
-    assertNonEmpty(input.transferId, "transferId");
-    assertNonEmpty(input.sourceWalletId, "sourceWalletId");
-    assertNonEmpty(input.destinationWalletId, "destinationWalletId");
-    assertNonEmpty(input.idempotencyKey, "idempotencyKey");
+    const transferId = normalizeRequired(input.transferId, "transferId");
+    const sourceWalletId = normalizeRequired(
+      input.sourceWalletId,
+      "sourceWalletId",
+    );
+    const destinationWalletId = normalizeRequired(
+      input.destinationWalletId,
+      "destinationWalletId",
+    );
+    const idempotencyKey = normalizeRequired(
+      input.idempotencyKey,
+      "idempotencyKey",
+    );
 
-    if (input.sourceWalletId === input.destinationWalletId) {
+    if (sourceWalletId === destinationWalletId) {
       throw new InvalidTransferCommandError(
         "sourceWalletId and destinationWalletId must be different",
       );
@@ -63,11 +75,11 @@ export class TransferCommand {
     }
 
     return new TransferCommand(
-      input.transferId.trim(),
-      input.sourceWalletId.trim(),
-      input.destinationWalletId.trim(),
+      transferId,
+      sourceWalletId,
+      destinationWalletId,
       input.amount,
-      input.idempotencyKey.trim(),
+      idempotencyKey,
       reference,
     );
   }
