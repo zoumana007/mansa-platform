@@ -23,6 +23,23 @@ test("crée et sérialise un résultat de transfert terminé", () => {
   assert.notEqual(result.completedAt, completedAt);
 });
 
+test("protège la date interne contre les mutations externes", () => {
+  const inputDate = new Date("2026-07-31T17:30:00.000Z");
+  const result = TransferResult.completed(
+    "transfer-immutable",
+    "transaction-immutable",
+    inputDate,
+  );
+
+  inputDate.setUTCFullYear(2040);
+  const exposedDate = result.completedAt;
+  exposedDate.setUTCFullYear(2050);
+
+  assert.equal(result.completedAt.toISOString(), "2026-07-31T17:30:00.000Z");
+  assert.equal(result.toJSON().completedAt, "2026-07-31T17:30:00.000Z");
+  assert.notEqual(result.completedAt, exposedDate);
+});
+
 test("signale explicitement une réponse rejouée", () => {
   const result = TransferResult.replayed(
     "transfer-2",
