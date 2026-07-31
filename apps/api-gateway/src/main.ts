@@ -4,24 +4,15 @@ import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
-
-const DEFAULT_PORT = 3000;
-
-function resolvePort(value: string | undefined): number {
-  if (value === undefined) {
-    return DEFAULT_PORT;
-  }
-
-  const port = Number.parseInt(value, 10);
-  if (!Number.isInteger(port) || port < 1 || port > 65_535) {
-    throw new Error('PORT must be an integer between 1 and 65535');
-  }
-
-  return port;
-}
+import { loadRuntimeConfig } from './runtime-config';
 
 async function bootstrap(): Promise<void> {
+  const config = loadRuntimeConfig();
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
+
+  if (config.trustProxy) {
+    app.getHttpAdapter().getInstance().set('trust proxy', true);
+  }
 
   app.setGlobalPrefix('api');
   app.enableVersioning({
@@ -37,7 +28,7 @@ async function bootstrap(): Promise<void> {
   );
   app.enableShutdownHooks();
 
-  await app.listen(resolvePort(process.env.PORT), '0.0.0.0');
+  await app.listen(config.port, config.host);
 }
 
 void bootstrap();
