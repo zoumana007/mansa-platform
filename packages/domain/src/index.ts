@@ -20,4 +20,5 @@ export * from "./transfer-result.js";
 export * from "./transfer-service.js";
 export * from "./wallet-repository.js";
 export * from "./wallet-service.js";
+export * from "./wallet-transfer-executor.js";
 export * from "./wallet.js";
