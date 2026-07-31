@@ -22,12 +22,20 @@ export class InvalidTransferResultError extends Error {
  * performed for the current request.
  */
 export class TransferResult {
+  private readonly completedAtValue: Date;
+
   private constructor(
     public readonly transferId: string,
     public readonly transactionId: string,
     public readonly status: TransferResultStatus,
-    public readonly completedAt: Date,
-  ) {}
+    completedAt: Date,
+  ) {
+    this.completedAtValue = new Date(completedAt);
+  }
+
+  get completedAt(): Date {
+    return new Date(this.completedAtValue);
+  }
 
   static create(input: TransferResultInput): TransferResult {
     const transferId = requireNonEmpty(input.transferId, "transferId");
@@ -39,7 +47,10 @@ export class TransferResult {
       );
     }
 
-    if (!(input.completedAt instanceof Date) || Number.isNaN(input.completedAt.getTime())) {
+    if (
+      !(input.completedAt instanceof Date) ||
+      Number.isNaN(input.completedAt.getTime())
+    ) {
       throw new InvalidTransferResultError("completedAt must be a valid date");
     }
 
@@ -47,7 +58,7 @@ export class TransferResult {
       transferId,
       transactionId,
       input.status,
-      new Date(input.completedAt),
+      input.completedAt,
     );
   }
 
@@ -87,7 +98,7 @@ export class TransferResult {
       transferId: this.transferId,
       transactionId: this.transactionId,
       status: this.status,
-      completedAt: this.completedAt.toISOString(),
+      completedAt: this.completedAtValue.toISOString(),
     };
   }
 }
