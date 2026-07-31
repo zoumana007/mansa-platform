@@ -41,6 +41,20 @@ test("refuse un transfert vers le même wallet", () => {
   );
 });
 
+test("refuse des wallets identiques après normalisation", () => {
+  assert.throws(
+    () =>
+      TransferCommand.create({
+        transferId: "transfer-2-normalized",
+        sourceWalletId: " wallet-1 ",
+        destinationWalletId: "wallet-1",
+        amount: Money.ofMinor(1_000n, "XOF"),
+        idempotencyKey: "idem-2-normalized",
+      }),
+    InvalidTransferCommandError,
+  );
+});
+
 test("refuse un montant nul ou négatif", () => {
   for (const minor of [0n, -1n]) {
     assert.throws(
