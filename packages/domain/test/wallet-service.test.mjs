@@ -55,6 +55,29 @@ test("refuse la création d'un identifiant déjà utilisé", async () => {
   );
 });
 
+test("consulte un wallet et filtre les wallets disponibles", async () => {
+  const service = new WalletService({
+    repository: new InMemoryWalletRepository(),
+  });
+
+  await service.create({ id: "wallet-xof", ownerId: "user-1", currency: "XOF" });
+  await service.create({ id: "wallet-eur", ownerId: "user-1", currency: "EUR" });
+  await service.create({ id: "wallet-other", ownerId: "user-2", currency: "XOF" });
+  await service.suspend("wallet-eur");
+
+  assert.equal((await service.get("wallet-xof")).ownerId, "user-1");
+  assert.deepEqual(
+    (await service.listByOwnerId("user-1")).map((wallet) => wallet.id).sort(),
+    ["wallet-eur", "wallet-xof"],
+  );
+  assert.deepEqual(
+    (await service.search({ ownerId: "user-1", status: "SUSPENDED" })).map(
+      (wallet) => wallet.id,
+    ),
+    ["wallet-eur"],
+  );
+});
+
 test("orchestre crédit, débit et suspension", async () => {
   const repository = new InMemoryWalletRepository();
   const service = new WalletService({
@@ -91,6 +114,7 @@ test("signale un wallet absent sans créer de mutation", async () => {
     repository: new InMemoryWalletRepository(),
   });
 
+  await assert.rejects(() => service.get("wallet-missing"), WalletNotFoundError);
   await assert.rejects(
     () =>
       service.credit({
