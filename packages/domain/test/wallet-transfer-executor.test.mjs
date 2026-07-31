@@ -68,6 +68,21 @@ test("débite et crédite les wallets dans la même devise", async () => {
   assert.deepEqual(wallets.saved, ["wallet-a", "wallet-b"]);
 });
 
+test("refuse un identifiant de transaction vide avant toute mutation", async () => {
+  const source = wallet("wallet-a", 10_000);
+  const destination = wallet("wallet-b", 1_000);
+  const wallets = repository([source, destination]);
+  const execute = createWalletTransferExecutor({
+    wallets,
+    nextTransactionId: () => "   ",
+  });
+
+  await assert.rejects(() => execute(command()), /transaction id must not be empty/);
+  assert.equal(source.availableBalance.minor, 10_000n);
+  assert.equal(destination.availableBalance.minor, 1_000n);
+  assert.deepEqual(wallets.saved, []);
+});
+
 test("refuse un transfert lorsque le wallet source est introuvable", async () => {
   const wallets = repository([wallet("wallet-b", 1_000)]);
   const execute = createWalletTransferExecutor({
