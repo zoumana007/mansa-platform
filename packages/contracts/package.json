@@ -19,6 +19,10 @@
       "types": "./dist/policy.d.ts",
       "import": "./dist/policy.js"
     },
+    "./role-assignment": {
+      "types": "./dist/role-assignment.d.ts",
+      "import": "./dist/role-assignment.js"
+    },
     "./correlation": {
       "types": "./dist/correlation.d.ts",
       "import": "./dist/correlation.js"
