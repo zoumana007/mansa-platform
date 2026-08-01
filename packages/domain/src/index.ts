@@ -7,6 +7,7 @@ export * from "./ledger-balance.js";
 export * from "./ledger.js";
 export * from "./mansa-handle-directory.js";
 export * from "./mansa-handle.js";
+export * from "./merchant-location.js";
 export * from "./merchant-profile.js";
 export * from "./merchant-staff-member.js";
 export * from "./money.js";
