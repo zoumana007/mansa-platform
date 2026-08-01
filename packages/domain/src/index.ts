@@ -11,6 +11,7 @@ export * from "./money.js";
 export * from "./payment-card.js";
 export * from "./qr-payment-intent.js";
 export * from "./rate.js";
+export * from "./savings-goal.js";
 export * from "./transaction-event-publisher.js";
 export * from "./transaction-event.js";
 export * from "./transaction-limit-policy.js";
