@@ -15,6 +15,10 @@
       "types": "./dist/authorization.d.ts",
       "import": "./dist/authorization.js"
     },
+    "./policy": {
+      "types": "./dist/policy.d.ts",
+      "import": "./dist/policy.js"
+    },
     "./correlation": {
       "types": "./dist/correlation.d.ts",
       "import": "./dist/correlation.js"
