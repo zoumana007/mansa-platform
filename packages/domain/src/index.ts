@@ -11,6 +11,7 @@ export * from "./money.js";
 export * from "./rate.js";
 export * from "./transaction-event-publisher.js";
 export * from "./transaction-event.js";
+export * from "./transaction-limit-policy.js";
 export * from "./transaction-outbox.js";
 export * from "./transaction-reference.js";
 export * from "./transaction-repository.js";
