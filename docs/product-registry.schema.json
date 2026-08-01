@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mansa.local/schemas/product-registry.schema.json",
+  "title": "Mansa Platform Product Registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "name",
+    "version",
+    "sourceOfTruth",
+    "products",
+    "sharedPackages",
+    "infrastructure",
+    "rules"
+  ],
+  "properties": {
+    "$schema": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "sourceOfTruth": { "type": "string", "format": "uri" },
+    "products": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "type", "path", "technology", "required"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+          "type": {
+            "type": "string",
+            "enum": ["mobile", "web", "terminal", "backend", "service"]
+          },
+          "path": { "type": "string", "pattern": "^apps/[a-z0-9-]+$" },
+          "technology": { "type": "string", "minLength": 1 },
+          "required": { "type": "boolean" }
+        }
+      }
+    },
+    "sharedPackages": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^packages/[a-z0-9-]+$" },
+      "uniqueItems": true
+    },
+    "infrastructure": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "rules": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": { "type": "boolean" }
+    }
+  }
+}
