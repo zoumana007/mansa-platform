@@ -23,6 +23,10 @@
       "types": "./dist/role-assignment.d.ts",
       "import": "./dist/role-assignment.js"
     },
+    "./dashboard": {
+      "types": "./dist/dashboard.d.ts",
+      "import": "./dist/dashboard.js"
+    },
     "./correlation": {
       "types": "./dist/correlation.d.ts",
       "import": "./dist/correlation.js"
