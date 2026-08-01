@@ -31,6 +31,10 @@
       "types": "./dist/beneficiary.d.ts",
       "import": "./dist/beneficiary.js"
     },
+    "./transaction-history": {
+      "types": "./dist/transaction-history.d.ts",
+      "import": "./dist/transaction-history.js"
+    },
     "./correlation": {
       "types": "./dist/correlation.d.ts",
       "import": "./dist/correlation.js"
