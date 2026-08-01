@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "mansa-platform",
+  "version": 1,
+  "sourceOfTruth": "zoumana007/mansa-docs/volume-01-socle-technique/02-cartographie-des-modules.md",
+  "environments": ["demo", "staging", "production"],
+  "applications": [
+    {
+      "id": "mobile-client",
+      "path": "apps/mobile-client",
+      "runtime": "react-native",
+      "required": true
+    },
+    {
+      "id": "mobile-merchant",
+      "path": "apps/mobile-merchant",
+      "runtime": "react-native",
+      "required": true
+    },
+    {
+      "id": "mobile-admin-lite",
+      "path": "apps/mobile-admin-lite",
+      "runtime": "react-native",
+      "required": true
+    },
+    {
+      "id": "mobile-directory",
+      "path": "apps/mobile-directory",
+      "runtime": "react-native",
+      "required": true
+    },
+    {
+      "id": "tpe-android",
+      "path": "apps/tpe-android",
+      "runtime": "android-kotlin",
+      "required": true
+    },
+    {
+      "id": "admin-web",
+      "path": "apps/admin-web",
+      "runtime": "nextjs",
+      "required": true
+    },
+    {
+      "id": "public-web",
+      "path": "apps/public-web",
+      "runtime": "nextjs",
+      "required": true
+    },
+    {
+      "id": "business-web",
+      "path": "apps/business-web",
+      "runtime": "nextjs",
+      "required": true
+    },
+    {
+      "id": "api-gateway",
+      "path": "apps/api-gateway",
+      "runtime": "nestjs",
+      "required": true
+    },
+    {
+      "id": "ai-services",
+      "path": "apps/ai-services",
+      "runtime": "isolated-service",
+      "required": true
+    },
+    {
+      "id": "workers",
+      "path": "apps/workers",
+      "runtime": "nodejs",
+      "required": true
+    }
+  ],
+  "packages": [
+    { "id": "config", "path": "packages/config", "required": true },
+    { "id": "contracts", "path": "packages/contracts", "required": true },
+    { "id": "domain", "path": "packages/domain", "required": true },
+    { "id": "ui", "path": "packages/ui", "required": true },
+    { "id": "security", "path": "packages/security", "required": true },
+    { "id": "observability", "path": "packages/observability", "required": true }
+  ],
+  "backendDomains": [
+    "identity-authentication",
+    "users-organizations-profiles",
+    "kyc-compliance-sanctions",
+    "accounts-wallets-balances",
+    "double-entry-ledger",
+    "payments-transfers-payment-requests",
+    "physical-virtual-temporary-cards",
+    "merchants-stores-terminals",
+    "qr-invoices-receipts-bill-splitting",
+    "loyalty-promotions-directory",
+    "notifications-support-claims",
+    "bank-mobile-money-card-network-partners",
+    "public-services-fines-taxes-scholarships-student-cards",
+    "fraud-risk-limits-blocking",
+    "administration-configuration-feature-flags",
+    "audit-reporting-accounting-exports"
+  ],
+  "invariants": {
+    "financialAmounts": "integer-minor-units",
+    "ledger": "double-entry",
+    "idempotency": "required-for-financial-operations-and-webhooks",
+    "secrets": "external-secret-manager-only",
+    "externalIntegrations": "ports-and-adapters",
+    "audit": "required-for-sensitive-actions"
+  }
+}
