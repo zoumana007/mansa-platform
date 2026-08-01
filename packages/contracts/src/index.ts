@@ -287,7 +287,6 @@ export {
   type PublicOrganizationType,
   type PublicPaymentReceipt,
   type PublicServiceCatalogEntry,
-  type PublicOrganizationType,
   type ScholarshipApplication,
   type ScholarshipStatus,
   type StudentCard,
