@@ -11,6 +11,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./authorization": {
+      "types": "./dist/authorization.d.ts",
+      "import": "./dist/authorization.js"
+    },
     "./correlation": {
       "types": "./dist/correlation.d.ts",
       "import": "./dist/correlation.js"
