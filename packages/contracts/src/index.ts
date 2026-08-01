@@ -23,6 +23,24 @@ export {
 } from './transaction.js';
 
 export {
+  SORT_DIRECTIONS,
+  TRANSACTION_DIRECTIONS,
+  TRANSACTION_HISTORY_SORT_FIELDS,
+  isSortDirection,
+  isTransactionDirection,
+  isTransactionHistorySortField,
+  type ListTransactionHistoryQuery,
+  type SortDirection,
+  type TransactionCounterparty,
+  type TransactionDirection,
+  type TransactionHistoryFilter,
+  type TransactionHistoryItem,
+  type TransactionHistoryPage,
+  type TransactionHistorySortField,
+  type TransactionReceipt,
+} from './transaction-history.js';
+
+export {
   API_ERROR_CODES,
   isApiErrorCode,
   type ApiErrorCode,
