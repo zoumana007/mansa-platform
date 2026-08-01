@@ -278,6 +278,24 @@ export {
 } from './support.js';
 
 export {
+  BENEFICIARY_STATUSES,
+  BENEFICIARY_TYPES,
+  BENEFICIARY_VERIFICATION_METHODS,
+  isBeneficiaryStatus,
+  isBeneficiaryType,
+  isBeneficiaryVerificationMethod,
+  type Beneficiary,
+  type BeneficiaryDestination,
+  type BeneficiaryStatus,
+  type BeneficiaryType,
+  type BeneficiaryVerificationMethod,
+  type ChangeBeneficiaryStatusCommand,
+  type CreateBeneficiaryCommand,
+  type UpdateBeneficiaryCommand,
+  type VerifyBeneficiaryCommand,
+} from './beneficiary.js';
+
+export {
   PUBLIC_AGENT_STATUSES,
   PUBLIC_OBLIGATION_STATUSES,
   PUBLIC_OBLIGATION_TYPES,
