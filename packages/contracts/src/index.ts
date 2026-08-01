@@ -91,6 +91,23 @@ export {
 } from './authorization.js';
 
 export {
+  POLICY_CONDITION_OPERATORS,
+  POLICY_EFFECTS,
+  POLICY_STATUSES,
+  isPolicyConditionOperator,
+  isPolicyEffect,
+  isPolicyStatus,
+  type AuthorizationEvaluationResult,
+  type AuthorizationPolicy,
+  type EvaluateAuthorizationCommand,
+  type PolicyCondition,
+  type PolicyConditionOperator,
+  type PolicyEffect,
+  type PolicyEvaluationTrace,
+  type PolicyStatus,
+} from './policy.js';
+
+export {
   KYC_CASE_STATUSES,
   KYC_DOCUMENT_TYPES,
   KYC_LEVELS,
