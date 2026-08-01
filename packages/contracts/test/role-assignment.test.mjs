@@ -6,7 +6,7 @@ import {
   ROLE_SCOPE_TYPES,
   isRoleAssignmentStatus,
   isRoleScopeType,
-} from "../dist/index.js";
+} from "../dist/role-assignment.js";
 
 test("reconnaît les statuts d’affectation de rôle", () => {
   for (const status of ROLE_ASSIGNMENT_STATUSES) {
