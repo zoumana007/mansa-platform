@@ -78,6 +78,19 @@ export {
 } from './authentication.js';
 
 export {
+  ACTOR_TYPES,
+  AUTHENTICATION_LEVELS,
+  isActorType,
+  isAuthenticationLevel,
+  type ActorType,
+  type AuthenticationLevel,
+  type AuthorizationActor,
+  type AuthorizationContext,
+  type AuthorizationDecision,
+  type AuthorizationResource,
+} from './authorization.js';
+
+export {
   KYC_CASE_STATUSES,
   KYC_DOCUMENT_TYPES,
   KYC_LEVELS,
@@ -274,6 +287,7 @@ export {
   type PublicOrganizationType,
   type PublicPaymentReceipt,
   type PublicServiceCatalogEntry,
+  type PublicOrganizationType,
   type ScholarshipApplication,
   type ScholarshipStatus,
   type StudentCard,
