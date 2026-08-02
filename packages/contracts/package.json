@@ -27,6 +27,7 @@
     "./dispute": { "types": "./dist/dispute.d.ts", "import": "./dist/dispute.js" },
     "./reconciliation": { "types": "./dist/reconciliation.d.ts", "import": "./dist/reconciliation.js" },
     "./settlement": { "types": "./dist/settlement.d.ts", "import": "./dist/settlement.js" },
+    "./settlement-schedule": { "types": "./dist/settlement-schedule.d.ts", "import": "./dist/settlement-schedule.js" },
     "./correlation": { "types": "./dist/correlation.d.ts", "import": "./dist/correlation.js" },
     "./intelligence": { "types": "./dist/intelligence.d.ts", "import": "./dist/intelligence.js" },
     "./analytics": { "types": "./dist/analytics.d.ts", "import": "./dist/analytics.js" },
