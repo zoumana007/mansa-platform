@@ -156,4 +156,5 @@ export function authorize(request: AuthorizationRequest): AuthorizationDecision 
 }
 
 export * from "./audit.js";
+export * from "./risk.js";
 export * from "./session.js";
