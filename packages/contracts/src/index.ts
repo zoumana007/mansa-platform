@@ -121,6 +121,14 @@ export {
 } from './authorization-decision.js';
 
 export {
+  hasEffectivePermission,
+  resolveEffectivePermissions,
+  type EffectivePermissionGrant,
+  type EffectivePermissionScope,
+  type EffectivePermissionSet,
+} from './effective-permissions.js';
+
+export {
   POLICY_CONDITION_OPERATORS,
   POLICY_EFFECTS,
   POLICY_STATUSES,
