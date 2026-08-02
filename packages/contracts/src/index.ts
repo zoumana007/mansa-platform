@@ -68,6 +68,23 @@ export {
 } from './payment-routing.js';
 
 export {
+  PAYMENT_ATTEMPT_STATUSES,
+  PAYMENT_FAILURE_CATEGORIES,
+  canTransitionPaymentAttempt,
+  createPaymentAttempt,
+  isFinalPaymentAttemptStatus,
+  isPaymentAttemptStatus,
+  isPaymentFailureCategory,
+  isRetryablePaymentFailure,
+  transitionPaymentAttempt,
+  type CreatePaymentAttemptCommand,
+  type PaymentAttempt,
+  type PaymentAttemptStatus,
+  type PaymentFailureCategory,
+  type TransitionPaymentAttemptCommand,
+} from './payment-attempt.js';
+
+export {
   SORT_DIRECTIONS,
   TRANSACTION_DIRECTIONS,
   TRANSACTION_HISTORY_SORT_FIELDS,
