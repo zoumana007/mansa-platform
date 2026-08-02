@@ -7,62 +7,21 @@
   "types": "dist/index.d.ts",
   "files": ["dist"],
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
-    "./authorization": {
-      "types": "./dist/authorization.d.ts",
-      "import": "./dist/authorization.js"
-    },
-    "./authorization-decision": {
-      "types": "./dist/authorization-decision.d.ts",
-      "import": "./dist/authorization-decision.js"
-    },
-    "./permission-catalog": {
-      "types": "./dist/permission-catalog.d.ts",
-      "import": "./dist/permission-catalog.js"
-    },
-    "./policy": {
-      "types": "./dist/policy.d.ts",
-      "import": "./dist/policy.js"
-    },
-    "./role-assignment": {
-      "types": "./dist/role-assignment.d.ts",
-      "import": "./dist/role-assignment.js"
-    },
-    "./role-profiles": {
-      "types": "./dist/role-profiles.d.ts",
-      "import": "./dist/role-profiles.js"
-    },
-    "./dashboard": {
-      "types": "./dist/dashboard.d.ts",
-      "import": "./dist/dashboard.js"
-    },
-    "./beneficiary": {
-      "types": "./dist/beneficiary.d.ts",
-      "import": "./dist/beneficiary.js"
-    },
-    "./transaction-history": {
-      "types": "./dist/transaction-history.d.ts",
-      "import": "./dist/transaction-history.js"
-    },
-    "./correlation": {
-      "types": "./dist/correlation.d.ts",
-      "import": "./dist/correlation.js"
-    },
-    "./intelligence": {
-      "types": "./dist/intelligence.d.ts",
-      "import": "./dist/intelligence.js"
-    },
-    "./analytics": {
-      "types": "./dist/analytics.d.ts",
-      "import": "./dist/analytics.js"
-    },
-    "./operations": {
-      "types": "./dist/operations.d.ts",
-      "import": "./dist/operations.js"
-    }
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    "./authorization": { "types": "./dist/authorization.d.ts", "import": "./dist/authorization.js" },
+    "./authorization-decision": { "types": "./dist/authorization-decision.d.ts", "import": "./dist/authorization-decision.js" },
+    "./effective-permissions": { "types": "./dist/effective-permissions.d.ts", "import": "./dist/effective-permissions.js" },
+    "./permission-catalog": { "types": "./dist/permission-catalog.d.ts", "import": "./dist/permission-catalog.js" },
+    "./policy": { "types": "./dist/policy.d.ts", "import": "./dist/policy.js" },
+    "./role-assignment": { "types": "./dist/role-assignment.d.ts", "import": "./dist/role-assignment.js" },
+    "./role-profiles": { "types": "./dist/role-profiles.d.ts", "import": "./dist/role-profiles.js" },
+    "./dashboard": { "types": "./dist/dashboard.d.ts", "import": "./dist/dashboard.js" },
+    "./beneficiary": { "types": "./dist/beneficiary.d.ts", "import": "./dist/beneficiary.js" },
+    "./transaction-history": { "types": "./dist/transaction-history.d.ts", "import": "./dist/transaction-history.js" },
+    "./correlation": { "types": "./dist/correlation.d.ts", "import": "./dist/correlation.js" },
+    "./intelligence": { "types": "./dist/intelligence.d.ts", "import": "./dist/intelligence.js" },
+    "./analytics": { "types": "./dist/analytics.d.ts", "import": "./dist/analytics.js" },
+    "./operations": { "types": "./dist/operations.d.ts", "import": "./dist/operations.js" }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -70,7 +29,5 @@
     "lint": "tsc -p tsconfig.json --noEmit",
     "test": "node --test"
   },
-  "devDependencies": {
-    "typescript": "^5.8.3"
-  }
+  "devDependencies": { "typescript": "^5.8.3" }
 }
