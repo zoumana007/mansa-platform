@@ -129,6 +129,16 @@ export {
 } from './effective-permissions.js';
 
 export {
+  DUTY_CONFLICT_CODES,
+  DUTY_CONFLICT_RULES,
+  findDutyConflicts,
+  hasDutyConflict,
+  type DutyConflict,
+  type DutyConflictCode,
+  type DutyConflictRule,
+} from './separation-of-duties.js';
+
+export {
   POLICY_CONDITION_OPERATORS,
   POLICY_EFFECTS,
   POLICY_STATUSES,
