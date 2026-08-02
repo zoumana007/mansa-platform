@@ -27,6 +27,10 @@
       "types": "./dist/role-assignment.d.ts",
       "import": "./dist/role-assignment.js"
     },
+    "./role-profiles": {
+      "types": "./dist/role-profiles.d.ts",
+      "import": "./dist/role-profiles.js"
+    },
     "./dashboard": {
       "types": "./dist/dashboard.d.ts",
       "import": "./dist/dashboard.js"
