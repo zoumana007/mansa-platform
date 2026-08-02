@@ -24,6 +24,7 @@
     "./payment-routing": { "types": "./dist/payment-routing.d.ts", "import": "./dist/payment-routing.js" },
     "./payment-attempt": { "types": "./dist/payment-attempt.d.ts", "import": "./dist/payment-attempt.js" },
     "./refund": { "types": "./dist/refund.d.ts", "import": "./dist/refund.js" },
+    "./dispute": { "types": "./dist/dispute.d.ts", "import": "./dist/dispute.js" },
     "./correlation": { "types": "./dist/correlation.d.ts", "import": "./dist/correlation.js" },
     "./intelligence": { "types": "./dist/intelligence.d.ts", "import": "./dist/intelligence.js" },
     "./analytics": { "types": "./dist/analytics.d.ts", "import": "./dist/analytics.js" },
