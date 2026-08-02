@@ -1,5 +1,9 @@
 import type { ActorType } from './authorization.js';
-import type { Permission, ReferenceRole } from './permission-catalog.js';
+import {
+  REFERENCE_ROLES,
+  type Permission,
+  type ReferenceRole,
+} from './permission-catalog.js';
 import type { RoleAssignment, RoleScopeType } from './role-assignment.js';
 import {
   getReferenceRoleProfile,
@@ -36,15 +40,17 @@ export function resolveEffectivePermissions(
 
   for (const assignment of assignments) {
     if (assignment.actorId !== actorId || assignment.status !== 'ACTIVE') continue;
-    if (assignment.expiresAt && assignment.expiresAt.getTime() <= now.getTime()) continue;
-    if (!roleProfileAllowsActorType(assignment.role, actorType)) continue;
-    if (!roleProfileAllowsScope(assignment.role, assignment.scope.type)) continue;
+    if (new Date(assignment.validFrom).getTime() > now.getTime()) continue;
+    if (assignment.validUntil && new Date(assignment.validUntil).getTime() <= now.getTime()) continue;
+    if (!isReferenceRole(assignment.roleId)) continue;
+    if (!roleProfileAllowsActorType(assignment.roleId, actorType)) continue;
+    if (!roleProfileAllowsScope(assignment.roleId, assignment.scope.type)) continue;
 
-    for (const permission of getReferenceRoleProfile(assignment.role).permissions) {
+    for (const permission of getReferenceRoleProfile(assignment.roleId).permissions) {
       grants.push({
         permission,
-        role: assignment.role,
-        assignmentId: assignment.id,
+        role: assignment.roleId,
+        assignmentId: assignment.assignmentId,
         scope: assignment.scope,
       });
     }
@@ -65,4 +71,8 @@ export function hasEffectivePermission(
     if (grant.scope.type === 'PLATFORM') return true;
     return grant.scope.type === scope.type && grant.scope.id === scope.id;
   });
+}
+
+function isReferenceRole(value: string): value is ReferenceRole {
+  return REFERENCE_ROLES.includes(value as ReferenceRole);
 }
