@@ -55,6 +55,19 @@ export {
 } from './fee-policy.js';
 
 export {
+  PAYMENT_ROUTE_STATUSES,
+  PAYMENT_ROUTE_STRATEGIES,
+  isPaymentRouteStatus,
+  isPaymentRouteStrategy,
+  selectPaymentRoute,
+  type PaymentRouteCandidate,
+  type PaymentRouteSelection,
+  type PaymentRouteStatus,
+  type PaymentRouteStrategy,
+  type SelectPaymentRouteCommand,
+} from './payment-routing.js';
+
+export {
   SORT_DIRECTIONS,
   TRANSACTION_DIRECTIONS,
   TRANSACTION_HISTORY_SORT_FIELDS,
