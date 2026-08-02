@@ -154,3 +154,5 @@ export function authorize(request: AuthorizationRequest): AuthorizationDecision 
 
   return { allowed: true, reason: "AUTHORIZED" };
 }
+
+export * from "./audit.js";
