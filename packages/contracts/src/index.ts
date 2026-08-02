@@ -40,6 +40,21 @@ export {
 } from './transaction-limits.js';
 
 export {
+  FEE_CALCULATION_METHODS,
+  FEE_PAYER_TYPES,
+  FEE_POLICY_STATUSES,
+  calculateFeeQuote,
+  isFeeCalculationMethod,
+  isFeePayerType,
+  isFeePolicyStatus,
+  type FeeCalculationMethod,
+  type FeePayerType,
+  type FeePolicy,
+  type FeePolicyStatus,
+  type FeeQuote,
+} from './fee-policy.js';
+
+export {
   SORT_DIRECTIONS,
   TRANSACTION_DIRECTIONS,
   TRANSACTION_HISTORY_SORT_FIELDS,
