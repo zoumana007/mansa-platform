@@ -15,6 +15,10 @@
       "types": "./dist/authorization.d.ts",
       "import": "./dist/authorization.js"
     },
+    "./authorization-decision": {
+      "types": "./dist/authorization-decision.d.ts",
+      "import": "./dist/authorization-decision.js"
+    },
     "./permission-catalog": {
       "types": "./dist/permission-catalog.d.ts",
       "import": "./dist/permission-catalog.js"
