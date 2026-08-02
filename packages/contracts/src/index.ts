@@ -109,6 +109,18 @@ export {
 } from './authorization.js';
 
 export {
+  AUTHORIZATION_DECISION_REASON_CODES,
+  AUTHORIZATION_OBLIGATIONS,
+  createAllowedAuthorizationDecision,
+  createDeniedAuthorizationDecision,
+  isAuthorizationDecisionReasonCode,
+  isAuthorizationObligation,
+  type AuthorizationDecisionReasonCode,
+  type AuthorizationObligation,
+  type TypedAuthorizationDecision,
+} from './authorization-decision.js';
+
+export {
   POLICY_CONDITION_OPERATORS,
   POLICY_EFFECTS,
   POLICY_STATUSES,
