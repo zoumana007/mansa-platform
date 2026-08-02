@@ -19,6 +19,7 @@
     "./dashboard": { "types": "./dist/dashboard.d.ts", "import": "./dist/dashboard.js" },
     "./beneficiary": { "types": "./dist/beneficiary.d.ts", "import": "./dist/beneficiary.js" },
     "./transaction-history": { "types": "./dist/transaction-history.d.ts", "import": "./dist/transaction-history.js" },
+    "./transaction-limits": { "types": "./dist/transaction-limits.d.ts", "import": "./dist/transaction-limits.js" },
     "./correlation": { "types": "./dist/correlation.d.ts", "import": "./dist/correlation.js" },
     "./intelligence": { "types": "./dist/intelligence.d.ts", "import": "./dist/intelligence.js" },
     "./analytics": { "types": "./dist/analytics.d.ts", "import": "./dist/analytics.js" },
