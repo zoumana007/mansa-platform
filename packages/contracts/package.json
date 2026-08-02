@@ -11,6 +11,7 @@
     "./authorization": { "types": "./dist/authorization.d.ts", "import": "./dist/authorization.js" },
     "./authorization-decision": { "types": "./dist/authorization-decision.d.ts", "import": "./dist/authorization-decision.js" },
     "./effective-permissions": { "types": "./dist/effective-permissions.d.ts", "import": "./dist/effective-permissions.js" },
+    "./separation-of-duties": { "types": "./dist/separation-of-duties.d.ts", "import": "./dist/separation-of-duties.js" },
     "./permission-catalog": { "types": "./dist/permission-catalog.d.ts", "import": "./dist/permission-catalog.js" },
     "./policy": { "types": "./dist/policy.d.ts", "import": "./dist/policy.js" },
     "./role-assignment": { "types": "./dist/role-assignment.d.ts", "import": "./dist/role-assignment.js" },
