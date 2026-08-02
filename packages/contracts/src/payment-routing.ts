@@ -52,9 +52,11 @@ export function selectPaymentRoute(
   if (eligible.length === 0) throw new Error('No eligible payment route');
 
   const sorted = [...eligible].sort((left, right) => compareRoutes(left, right, command.strategy));
+  const selectedRoute = sorted[0];
+  if (selectedRoute === undefined) throw new Error('No eligible payment route');
 
   return {
-    selectedRoute: sorted[0],
+    selectedRoute,
     eligibleRouteIds: sorted.map((route) => route.routeId),
     strategy: command.strategy,
   };
