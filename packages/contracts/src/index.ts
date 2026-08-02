@@ -23,6 +23,23 @@ export {
 } from './transaction.js';
 
 export {
+  TRANSACTION_LIMIT_PERIODS,
+  TRANSACTION_LIMIT_SCOPES,
+  TRANSACTION_LIMIT_STATUSES,
+  createTransactionLimitAmount,
+  evaluateTransactionLimit,
+  isTransactionLimitPeriod,
+  isTransactionLimitScope,
+  isTransactionLimitStatus,
+  type TransactionLimit,
+  type TransactionLimitConsumption,
+  type TransactionLimitEvaluation,
+  type TransactionLimitPeriod,
+  type TransactionLimitScope,
+  type TransactionLimitStatus,
+} from './transaction-limits.js';
+
+export {
   SORT_DIRECTIONS,
   TRANSACTION_DIRECTIONS,
   TRANSACTION_HISTORY_SORT_FIELDS,
