@@ -8,6 +8,7 @@
   "files": ["dist"],
   "exports": {
     ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    "./api-response": { "types": "./dist/api-response.d.ts", "import": "./dist/api-response.js" },
     "./authorization": { "types": "./dist/authorization.d.ts", "import": "./dist/authorization.js" },
     "./authorization-decision": { "types": "./dist/authorization-decision.d.ts", "import": "./dist/authorization-decision.js" },
     "./effective-permissions": { "types": "./dist/effective-permissions.d.ts", "import": "./dist/effective-permissions.js" },
