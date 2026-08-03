@@ -162,6 +162,7 @@ export * from "./compliance-decision.js";
 export * from "./compliance-evidence.js";
 export * from "./device.js";
 export * from "./limits.js";
+export * from "./regulatory-report.js";
 export * from "./risk.js";
 export * from "./role-policy.js";
 export * from "./screening.js";
