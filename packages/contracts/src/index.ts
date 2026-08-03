@@ -158,6 +158,13 @@ export {
 } from './authentication.js';
 
 export {
+  IDENTITY_API_METHODS,
+  IDENTITY_API_ROUTES,
+  type IdentityApiContract,
+  type IdentityApiRouteName,
+} from './identity-api.js';
+
+export {
   ACTOR_TYPES,
   AUTHENTICATION_LEVELS,
   isActorType,
