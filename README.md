@@ -37,6 +37,8 @@ Monorepo technique de la plateforme fintech Mansa. La documentation fonctionnell
 - `.github/workflows/` : validation CI sans secret de production.
 - `docs/` : décisions techniques locales et liens vers le dépôt documentaire.
 
+La vue technique des frontières, dépendances et flux financiers se trouve dans [`docs/architecture.md`](docs/architecture.md).
+
 ## Principes obligatoires
 
 - TypeScript strict lorsque la technologie le permet.
@@ -59,6 +61,12 @@ pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
+```
+
+Pour exécuter la validation complète du monorepo :
+
+```bash
+pnpm validate
 ```
 
 Copier `.env.example` vers `.env` uniquement en local. Les valeurs réelles doivent provenir d’un gestionnaire de secrets en environnement hébergé.
