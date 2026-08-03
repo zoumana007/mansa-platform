@@ -158,6 +158,7 @@ export function authorize(request: AuthorizationRequest): AuthorizationDecision 
 export * from "./audit.js";
 export * from "./beneficiary.js";
 export * from "./compliance-case.js";
+export * from "./compliance-decision.js";
 export * from "./compliance-evidence.js";
 export * from "./device.js";
 export * from "./limits.js";
