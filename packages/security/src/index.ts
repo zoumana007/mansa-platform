@@ -155,6 +155,7 @@ export function authorize(request: AuthorizationRequest): AuthorizationDecision 
   return { allowed: true, reason: "AUTHORIZED" };
 }
 
+export * from "./approval-execution.js";
 export * from "./approval-workflow.js";
 export * from "./audit.js";
 export * from "./beneficiary.js";
