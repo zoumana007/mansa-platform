@@ -37,7 +37,7 @@ Monorepo technique de la plateforme fintech Mansa. La documentation fonctionnell
 - `.github/workflows/` : validation CI sans secret de production.
 - `docs/` : décisions techniques locales et liens vers le dépôt documentaire.
 
-La vue technique des frontières, dépendances et flux financiers se trouve dans [`docs/architecture.md`](docs/architecture.md).
+La vue technique des frontières, dépendances et flux financiers se trouve dans [`docs/architecture.md`](docs/architecture.md). Les règles d’erreurs, corrélation et idempotence à appliquer par les services se trouvent dans [`docs/api-conventions.md`](docs/api-conventions.md).
 
 ## Principes obligatoires
 
