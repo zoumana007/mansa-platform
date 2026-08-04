@@ -98,11 +98,11 @@ export function isLedgerBalanced(entries: readonly LedgerEntryDraft[]): boolean 
 
   const debitTotal = entries
     .filter((entry) => entry.direction === 'DEBIT')
-    .reduce((sum, entry) => sum + entry.amount.minorUnits, 0n);
+    .reduce((sum, entry) => sum + entry.amount.amountMinor, 0n);
 
   const creditTotal = entries
     .filter((entry) => entry.direction === 'CREDIT')
-    .reduce((sum, entry) => sum + entry.amount.minorUnits, 0n);
+    .reduce((sum, entry) => sum + entry.amount.amountMinor, 0n);
 
   return debitTotal > 0n && debitTotal === creditTotal;
 }
