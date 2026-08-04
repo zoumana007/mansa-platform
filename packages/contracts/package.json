@@ -18,6 +18,7 @@
     "./terminal-api": { "types": "./dist/terminal-api.d.ts", "import": "./dist/terminal-api.js" },
     "./public-services-api": { "types": "./dist/public-services-api.d.ts", "import": "./dist/public-services-api.js" },
     "./notification-api": { "types": "./dist/notification-api.d.ts", "import": "./dist/notification-api.js" },
+    "./support-api": { "types": "./dist/support-api.d.ts", "import": "./dist/support-api.js" },
     "./authorization": { "types": "./dist/authorization.d.ts", "import": "./dist/authorization.js" },
     "./authorization-decision": { "types": "./dist/authorization-decision.d.ts", "import": "./dist/authorization-decision.js" },
     "./effective-permissions": { "types": "./dist/effective-permissions.d.ts", "import": "./dist/effective-permissions.js" },
