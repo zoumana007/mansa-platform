@@ -1,3 +1,5 @@
+import type { PageRequest, PageResponse } from './pagination.js';
+
 export const NOTIFICATION_CHANNELS = [
   'IN_APP',
   'PUSH',
@@ -45,8 +47,61 @@ export interface NotificationDelivery {
   readonly recipientMasked: string;
   readonly providerReference?: string;
   readonly failureCode?: string;
+  readonly correlationId?: string;
+  readonly scheduledAt?: string;
+  readonly sentAt?: string;
+  readonly deliveredAt?: string;
   readonly createdAt: string;
   readonly updatedAt: string;
+}
+
+export const NOTIFICATION_API_ROUTES = {
+  send: '/v1/notifications',
+  listDeliveries: '/v1/notifications/deliveries',
+  getDelivery: '/v1/notifications/deliveries/:deliveryId',
+  cancelDelivery: '/v1/notifications/deliveries/:deliveryId/cancel',
+} as const;
+
+export const NOTIFICATION_API_METHODS = {
+  send: 'POST',
+  listDeliveries: 'GET',
+  getDelivery: 'GET',
+  cancelDelivery: 'POST',
+} as const;
+
+export type NotificationApiRouteName = keyof typeof NOTIFICATION_API_ROUTES;
+
+export interface ListNotificationDeliveriesQuery extends PageRequest {
+  readonly userId?: string;
+  readonly channel?: NotificationChannel;
+  readonly status?: NotificationStatus;
+  readonly correlationId?: string;
+  readonly createdFrom?: string;
+  readonly createdTo?: string;
+}
+
+export interface CancelNotificationDeliveryCommand {
+  readonly deliveryId: string;
+  readonly reason: string;
+}
+
+export interface NotificationApiContract {
+  readonly send: {
+    readonly request: SendNotificationCommand;
+    readonly response: readonly NotificationDelivery[];
+  };
+  readonly listDeliveries: {
+    readonly request: ListNotificationDeliveriesQuery;
+    readonly response: PageResponse<NotificationDelivery>;
+  };
+  readonly getDelivery: {
+    readonly request: { readonly deliveryId: string };
+    readonly response: NotificationDelivery;
+  };
+  readonly cancelDelivery: {
+    readonly request: CancelNotificationDeliveryCommand;
+    readonly response: NotificationDelivery;
+  };
 }
 
 export function isNotificationChannel(value: string): value is NotificationChannel {
