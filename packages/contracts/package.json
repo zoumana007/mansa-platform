@@ -43,6 +43,7 @@
     "./settlement-destination": { "types": "./dist/settlement-destination.d.ts", "import": "./dist/settlement-destination.js" },
     "./correlation": { "types": "./dist/correlation.d.ts", "import": "./dist/correlation.js" },
     "./intelligence": { "types": "./dist/intelligence.d.ts", "import": "./dist/intelligence.js" },
+    "./intelligence-api": { "types": "./dist/intelligence-api.d.ts", "import": "./dist/intelligence-api.js" },
     "./analytics": { "types": "./dist/analytics.d.ts", "import": "./dist/analytics.js" },
     "./operations": { "types": "./dist/operations.d.ts", "import": "./dist/operations.js" }
   },
