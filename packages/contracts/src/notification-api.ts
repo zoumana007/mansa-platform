@@ -40,12 +40,16 @@ export interface NotificationDeliveryActionCommand {
   readonly idempotencyKey: string;
 }
 
+export interface SendNotificationResult {
+  readonly deliveries: readonly NotificationDelivery[];
+}
+
 export interface NotificationApiContract {
   send: {
     method: typeof NOTIFICATION_API_METHODS.send;
     path: typeof NOTIFICATION_API_ROUTES.send;
     request: SendNotificationCommand;
-    response: PageResponse<NotificationDelivery>;
+    response: SendNotificationResult;
   };
   listDeliveries: {
     method: typeof NOTIFICATION_API_METHODS.listDeliveries;
