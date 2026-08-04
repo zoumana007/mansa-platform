@@ -16,6 +16,7 @@
     "./card-api": { "types": "./dist/card-api.d.ts", "import": "./dist/card-api.js" },
     "./merchant-api": { "types": "./dist/merchant-api.d.ts", "import": "./dist/merchant-api.js" },
     "./terminal-api": { "types": "./dist/terminal-api.d.ts", "import": "./dist/terminal-api.js" },
+    "./public-services-api": { "types": "./dist/public-services-api.d.ts", "import": "./dist/public-services-api.js" },
     "./authorization": { "types": "./dist/authorization.d.ts", "import": "./dist/authorization.js" },
     "./authorization-decision": { "types": "./dist/authorization-decision.d.ts", "import": "./dist/authorization-decision.js" },
     "./effective-permissions": { "types": "./dist/effective-permissions.d.ts", "import": "./dist/effective-permissions.js" },
