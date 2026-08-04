@@ -446,6 +446,7 @@ export {
   type PublicOrganizationType,
   type PublicPaymentReceipt,
   type PublicServiceCatalogEntry,
+  type PublicOrganizationType,
   type ScholarshipApplication,
   type ScholarshipStatus,
   type StudentCard,
@@ -463,3 +464,33 @@ export {
   type PublicServicesApiContract,
   type PublicServicesApiRouteName,
 } from './public-services-api.js';
+
+export {
+  TRANSFER_FAILURE_CODES,
+  TRANSFER_TYPES,
+  isTransferFailureCode,
+  isTransferType,
+  type AuthorizeTransferCommand,
+  type CancelTransferCommand,
+  type CreateTransferCommand,
+  type QuoteTransferCommand,
+  type Transfer,
+  type TransferFailureCode,
+  type TransferQuote,
+  type TransferType,
+} from './transfer.js';
+
+export {
+  TRANSFER_API_METHODS,
+  TRANSFER_API_ROUTES,
+  type TransferApiContract,
+  type TransferApiRouteName,
+} from './transfer-api.js';
+
+export {
+  PAYMENT_API_METHODS,
+  PAYMENT_API_ROUTES,
+  type PayPaymentRequestCommand,
+  type PaymentApiContract,
+  type PaymentApiRouteName,
+} from './payment-api.js';
