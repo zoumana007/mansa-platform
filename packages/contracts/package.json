@@ -8,6 +8,7 @@
   "files": ["dist"],
   "exports": {
     ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    "./api-contracts": { "types": "./dist/api-contracts.d.ts", "import": "./dist/api-contracts.js" },
     "./api-response": { "types": "./dist/api-response.d.ts", "import": "./dist/api-response.js" },
     "./identity-api": { "types": "./dist/identity-api.d.ts", "import": "./dist/identity-api.js" },
     "./wallet-api": { "types": "./dist/wallet-api.d.ts", "import": "./dist/wallet-api.js" },
