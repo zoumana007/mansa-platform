@@ -6,6 +6,7 @@ import type {
   IssueStudentCardCommand,
   PublicObligation,
   PublicObligationStatus,
+  PublicObligationType,
   PublicOrganization,
   PublicPaymentReceipt,
   PublicServiceCatalogEntry,
@@ -55,7 +56,7 @@ export interface ListPublicOrganizationsQuery extends PageRequest {
 
 export interface ListPublicServiceCatalogQuery extends PageRequest {
   organizationId?: string;
-  obligationType?: string;
+  obligationType?: PublicObligationType;
   active?: boolean;
 }
 
