@@ -1,3 +1,5 @@
+import type { PageRequest, PageResponse } from './pagination.js';
+
 export const SUPPORT_TICKET_PRIORITIES = ['LOW', 'NORMAL', 'HIGH', 'URGENT'] as const;
 export type SupportTicketPriority = (typeof SUPPORT_TICKET_PRIORITIES)[number];
 
@@ -66,6 +68,65 @@ export interface UpdateSupportTicketCommand {
   readonly priority?: SupportTicketPriority;
   readonly assigneeUserId?: string;
   readonly message?: string;
+}
+
+export interface AddSupportMessageCommand {
+  readonly ticketId: string;
+  readonly authorId: string;
+  readonly authorType: SupportMessage['authorType'];
+  readonly body: string;
+  readonly attachmentIds?: readonly string[];
+}
+
+export const SUPPORT_API_ROUTES = {
+  createTicket: '/v1/support/tickets',
+  listTickets: '/v1/support/tickets',
+  getTicket: '/v1/support/tickets/:ticketId',
+  updateTicket: '/v1/support/tickets/:ticketId',
+  addMessage: '/v1/support/tickets/:ticketId/messages',
+} as const;
+
+export const SUPPORT_API_METHODS = {
+  createTicket: 'POST',
+  listTickets: 'GET',
+  getTicket: 'GET',
+  updateTicket: 'PATCH',
+  addMessage: 'POST',
+} as const;
+
+export type SupportApiRouteName = keyof typeof SUPPORT_API_ROUTES;
+
+export interface ListSupportTicketsQuery extends PageRequest {
+  readonly requesterUserId?: string;
+  readonly assigneeUserId?: string;
+  readonly category?: SupportTicketCategory;
+  readonly priority?: SupportTicketPriority;
+  readonly status?: SupportTicketStatus;
+  readonly createdFrom?: string;
+  readonly createdTo?: string;
+}
+
+export interface SupportApiContract {
+  readonly createTicket: {
+    readonly request: CreateSupportTicketCommand;
+    readonly response: SupportTicket;
+  };
+  readonly listTickets: {
+    readonly request: ListSupportTicketsQuery;
+    readonly response: PageResponse<SupportTicket>;
+  };
+  readonly getTicket: {
+    readonly request: { readonly ticketId: string };
+    readonly response: SupportTicket;
+  };
+  readonly updateTicket: {
+    readonly request: UpdateSupportTicketCommand;
+    readonly response: SupportTicket;
+  };
+  readonly addMessage: {
+    readonly request: AddSupportMessageCommand;
+    readonly response: SupportMessage;
+  };
 }
 
 export function isSupportTicketStatus(value: string): value is SupportTicketStatus {
