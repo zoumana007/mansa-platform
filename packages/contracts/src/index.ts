@@ -451,3 +451,15 @@ export {
   type StudentCard,
   type StudentCardStatus,
 } from './public-services.js';
+
+export {
+  PUBLIC_SERVICES_API_METHODS,
+  PUBLIC_SERVICES_API_ROUTES,
+  type ListPublicObligationsQuery,
+  type ListPublicOrganizationsQuery,
+  type ListPublicServiceCatalogQuery,
+  type ListScholarshipApplicationsQuery,
+  type ListStudentCardsQuery,
+  type PublicServicesApiContract,
+  type PublicServicesApiRouteName,
+} from './public-services-api.js';
