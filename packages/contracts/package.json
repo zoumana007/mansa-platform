@@ -12,6 +12,8 @@
     "./api-response": { "types": "./dist/api-response.d.ts", "import": "./dist/api-response.js" },
     "./identity-api": { "types": "./dist/identity-api.d.ts", "import": "./dist/identity-api.js" },
     "./kyc-api": { "types": "./dist/kyc-api.d.ts", "import": "./dist/kyc-api.js" },
+    "./ledger": { "types": "./dist/ledger.d.ts", "import": "./dist/ledger.js" },
+    "./ledger-api": { "types": "./dist/ledger-api.d.ts", "import": "./dist/ledger-api.js" },
     "./wallet-api": { "types": "./dist/wallet-api.d.ts", "import": "./dist/wallet-api.js" },
     "./payment-api": { "types": "./dist/payment-api.d.ts", "import": "./dist/payment-api.js" },
     "./transfer-api": { "types": "./dist/transfer-api.d.ts", "import": "./dist/transfer-api.js" },
