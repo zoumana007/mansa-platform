@@ -413,6 +413,13 @@ export {
 } from './beneficiary.js';
 
 export {
+  BENEFICIARY_API_METHODS,
+  BENEFICIARY_API_ROUTES,
+  type BeneficiaryApiContract,
+  type ListBeneficiariesQuery,
+} from './beneficiary-api.js';
+
+export {
   PUBLIC_AGENT_STATUSES,
   PUBLIC_OBLIGATION_STATUSES,
   PUBLIC_OBLIGATION_TYPES,
