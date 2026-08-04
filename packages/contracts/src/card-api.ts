@@ -1,5 +1,8 @@
+import type { PageRequest, PageResponse } from './pagination.js';
 import type {
   CardReference,
+  CardStatus,
+  CardType,
   ChangeCardStatusCommand,
   CreateCardCommand,
   UpdateCardControlsCommand,
@@ -15,54 +18,58 @@ export const CARD_API_ROUTES = {
   updateCardLimits: '/v1/cards/:cardId/limits',
 } as const;
 
+export const CARD_API_METHODS = {
+  createCard: 'POST',
+  listCards: 'GET',
+  getCard: 'GET',
+  changeCardStatus: 'PATCH',
+  updateCardControls: 'PATCH',
+  updateCardLimits: 'PATCH',
+} as const;
+
 export type CardApiRouteName = keyof typeof CARD_API_ROUTES;
 
-export interface ListCardsQuery {
+export interface ListCardsQuery extends PageRequest {
   readonly walletId?: string;
-  readonly status?: CardReference['status'];
-  readonly type?: CardReference['type'];
+  readonly status?: CardStatus;
+  readonly type?: CardType;
 }
 
 export interface CardApiContract {
   readonly createCard: {
-    readonly method: 'POST';
-    readonly request: CreateCardCommand;
+    readonly method: typeof CARD_API_METHODS.createCard;
+    readonly path: typeof CARD_API_ROUTES.createCard;
+    readonly request: CreateCardCommand & { readonly idempotencyKey: string };
     readonly response: CardReference;
   };
   readonly listCards: {
-    readonly method: 'GET';
+    readonly method: typeof CARD_API_METHODS.listCards;
+    readonly path: typeof CARD_API_ROUTES.listCards;
     readonly request: ListCardsQuery;
-    readonly response: readonly CardReference[];
+    readonly response: PageResponse<CardReference>;
   };
   readonly getCard: {
-    readonly method: 'GET';
-    readonly request: undefined;
+    readonly method: typeof CARD_API_METHODS.getCard;
+    readonly path: typeof CARD_API_ROUTES.getCard;
+    readonly request: { readonly cardId: string };
     readonly response: CardReference;
   };
   readonly changeCardStatus: {
-    readonly method: 'POST';
-    readonly request: ChangeCardStatusCommand;
+    readonly method: typeof CARD_API_METHODS.changeCardStatus;
+    readonly path: typeof CARD_API_ROUTES.changeCardStatus;
+    readonly request: ChangeCardStatusCommand & { readonly idempotencyKey: string };
     readonly response: CardReference;
   };
   readonly updateCardControls: {
-    readonly method: 'PUT';
-    readonly request: UpdateCardControlsCommand;
+    readonly method: typeof CARD_API_METHODS.updateCardControls;
+    readonly path: typeof CARD_API_ROUTES.updateCardControls;
+    readonly request: UpdateCardControlsCommand & { readonly idempotencyKey: string };
     readonly response: CardReference;
   };
   readonly updateCardLimits: {
-    readonly method: 'PUT';
-    readonly request: UpdateCardLimitsCommand;
+    readonly method: typeof CARD_API_METHODS.updateCardLimits;
+    readonly path: typeof CARD_API_ROUTES.updateCardLimits;
+    readonly request: UpdateCardLimitsCommand & { readonly idempotencyKey: string };
     readonly response: CardReference;
   };
 }
-
-export const CARD_API_METHODS: Readonly<
-  Record<CardApiRouteName, CardApiContract[CardApiRouteName]['method']>
-> = {
-  createCard: 'POST',
-  listCards: 'GET',
-  getCard: 'GET',
-  changeCardStatus: 'POST',
-  updateCardControls: 'PUT',
-  updateCardLimits: 'PUT',
-};
