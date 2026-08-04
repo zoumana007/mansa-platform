@@ -12,3 +12,4 @@ export * from './beneficiary-api.js';
 export * from './intelligence-api.js';
 export * from './analytics-api.js';
 export * from './admin-api.js';
+export * from './integration-api.js';
