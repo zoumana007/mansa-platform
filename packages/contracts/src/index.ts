@@ -300,6 +300,14 @@ export {
 } from './card.js';
 
 export {
+  CARD_API_METHODS,
+  CARD_API_ROUTES,
+  type CardApiContract,
+  type CardApiRouteName,
+  type ListCardsQuery,
+} from './card-api.js';
+
+export {
   MERCHANT_MEMBER_ROLES,
   MERCHANT_MEMBER_STATUSES,
   MERCHANT_STATUSES,
