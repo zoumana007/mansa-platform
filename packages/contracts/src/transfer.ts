@@ -92,7 +92,7 @@ export interface AuthorizeTransferCommand {
 export interface CancelTransferCommand {
   readonly transferId: string;
   readonly ownerUserId: string;
-  readonly reason?: string;
+  readonly reason: string;
 }
 
 export interface InternalTransfer {
@@ -126,6 +126,19 @@ export interface Transfer {
   readonly clientReference?: string;
   readonly createdAt: string;
   readonly updatedAt: string;
+  readonly completedAt?: string;
+}
+
+export interface TransferReceipt {
+  readonly transferId: string;
+  readonly reference: string;
+  readonly status: TransferStatus;
+  readonly type: TransferType;
+  readonly amount: Money;
+  readonly fees: TransferFeeBreakdown;
+  readonly sourceLabel: string;
+  readonly beneficiaryLabel: string;
+  readonly createdAt: string;
   readonly completedAt?: string;
 }
 
