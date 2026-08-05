@@ -1,6 +1,7 @@
 import type {
   LedgerAccount,
   LedgerBalance,
+  LedgerEntry,
   LedgerTransaction,
   PostLedgerTransactionCommand,
   ReverseLedgerTransactionCommand,
@@ -26,7 +27,7 @@ export interface ListLedgerEntriesQuery {
 }
 
 export interface LedgerEntryPage {
-  readonly items: readonly LedgerTransaction[];
+  readonly items: readonly LedgerEntry[];
   readonly nextCursor?: string;
 }
 
