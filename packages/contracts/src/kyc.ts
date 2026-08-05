@@ -32,6 +32,16 @@ export const KYC_DOCUMENT_TYPES = [
 
 export type KycDocumentType = (typeof KYC_DOCUMENT_TYPES)[number];
 
+export const KYC_CASE_TRANSITIONS: Readonly<Record<KycCaseStatus, readonly KycCaseStatus[]>> = {
+  DRAFT: ['SUBMITTED', 'CANCELLED'],
+  SUBMITTED: ['IN_REVIEW', 'CANCELLED'],
+  IN_REVIEW: ['ACTION_REQUIRED', 'APPROVED', 'REJECTED'],
+  ACTION_REQUIRED: ['SUBMITTED', 'CANCELLED'],
+  APPROVED: [],
+  REJECTED: [],
+  CANCELLED: [],
+};
+
 export interface KycDocumentReference {
   id: string;
   type: KycDocumentType;
@@ -107,4 +117,24 @@ export function isKycCaseStatus(value: string): value is KycCaseStatus {
 
 export function isKycDocumentType(value: string): value is KycDocumentType {
   return KYC_DOCUMENT_TYPES.includes(value as KycDocumentType);
+}
+
+export function isFinalKycCaseStatus(status: KycCaseStatus): boolean {
+  return KYC_CASE_TRANSITIONS[status].length === 0;
+}
+
+export function canTransitionKycCase(
+  currentStatus: KycCaseStatus,
+  nextStatus: KycCaseStatus,
+): boolean {
+  return KYC_CASE_TRANSITIONS[currentStatus].includes(nextStatus);
+}
+
+export function assertKycCaseTransition(
+  currentStatus: KycCaseStatus,
+  nextStatus: KycCaseStatus,
+): void {
+  if (!canTransitionKycCase(currentStatus, nextStatus)) {
+    throw new Error(`Invalid KYC case transition: ${currentStatus} -> ${nextStatus}`);
+  }
 }
