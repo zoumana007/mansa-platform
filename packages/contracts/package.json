@@ -44,6 +44,7 @@
     "./beneficiary": { "types": "./dist/beneficiary.d.ts", "import": "./dist/beneficiary.js" },
     "./transaction-history": { "types": "./dist/transaction-history.d.ts", "import": "./dist/transaction-history.js" },
     "./transaction-limits": { "types": "./dist/transaction-limits.d.ts", "import": "./dist/transaction-limits.js" },
+    "./transaction-limits-api": { "types": "./dist/transaction-limits-api.d.ts", "import": "./dist/transaction-limits-api.js" },
     "./fee-policy": { "types": "./dist/fee-policy.d.ts", "import": "./dist/fee-policy.js" },
     "./commission": { "types": "./dist/commission.d.ts", "import": "./dist/commission.js" },
     "./commission-api": { "types": "./dist/commission-api.d.ts", "import": "./dist/commission-api.js" },
