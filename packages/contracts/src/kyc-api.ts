@@ -3,6 +3,8 @@ import type {
   KycCase,
   KycCaseStatus,
   KycDocumentReference,
+  KycLevel,
+  KycProfileInput,
   ReviewKycCaseCommand,
   SubmitKycCaseCommand,
 } from './kyc.js';
@@ -12,6 +14,7 @@ export const KYC_API_ROUTES = {
   createDraft: '/v1/kyc/cases',
   getCase: '/v1/kyc/cases/:caseId',
   listCases: '/v1/kyc/cases',
+  updateProfile: '/v1/kyc/cases/:caseId/profile',
   addDocument: '/v1/kyc/cases/:caseId/documents',
   removeDocument: '/v1/kyc/cases/:caseId/documents/:documentId',
   submitCase: '/v1/kyc/cases/:caseId/submit',
@@ -22,6 +25,7 @@ export const KYC_API_METHODS = {
   createDraft: 'POST',
   getCase: 'GET',
   listCases: 'GET',
+  updateProfile: 'PATCH',
   addDocument: 'POST',
   removeDocument: 'DELETE',
   submitCase: 'POST',
@@ -35,8 +39,16 @@ export interface ListKycCasesQuery extends PageRequest {
   readonly countryCode?: string;
   readonly programCode?: string;
   readonly status?: KycCaseStatus;
+  readonly resultingLevel?: KycLevel;
   readonly createdFrom?: string;
   readonly createdTo?: string;
+}
+
+export interface UpdateKycProfileCommand {
+  readonly caseId: string;
+  readonly userId: string;
+  readonly profile: KycProfileInput;
+  readonly expectedVersion: number;
 }
 
 export interface AddKycDocumentCommand {
@@ -55,31 +67,51 @@ export interface RemoveKycDocumentCommand {
 
 export interface KycApiContract {
   readonly createDraft: {
-    readonly request: CreateKycDraftCommand;
+    readonly method: typeof KYC_API_METHODS.createDraft;
+    readonly path: typeof KYC_API_ROUTES.createDraft;
+    readonly request: CreateKycDraftCommand & { readonly idempotencyKey: string };
     readonly response: KycCase;
   };
   readonly getCase: {
+    readonly method: typeof KYC_API_METHODS.getCase;
+    readonly path: typeof KYC_API_ROUTES.getCase;
     readonly request: { readonly caseId: string };
     readonly response: KycCase;
   };
   readonly listCases: {
+    readonly method: typeof KYC_API_METHODS.listCases;
+    readonly path: typeof KYC_API_ROUTES.listCases;
     readonly request: ListKycCasesQuery;
     readonly response: PageResponse<KycCase>;
   };
+  readonly updateProfile: {
+    readonly method: typeof KYC_API_METHODS.updateProfile;
+    readonly path: typeof KYC_API_ROUTES.updateProfile;
+    readonly request: UpdateKycProfileCommand & { readonly idempotencyKey: string };
+    readonly response: KycCase;
+  };
   readonly addDocument: {
-    readonly request: AddKycDocumentCommand;
+    readonly method: typeof KYC_API_METHODS.addDocument;
+    readonly path: typeof KYC_API_ROUTES.addDocument;
+    readonly request: AddKycDocumentCommand & { readonly idempotencyKey: string };
     readonly response: KycCase;
   };
   readonly removeDocument: {
-    readonly request: RemoveKycDocumentCommand;
+    readonly method: typeof KYC_API_METHODS.removeDocument;
+    readonly path: typeof KYC_API_ROUTES.removeDocument;
+    readonly request: RemoveKycDocumentCommand & { readonly idempotencyKey: string };
     readonly response: KycCase;
   };
   readonly submitCase: {
+    readonly method: typeof KYC_API_METHODS.submitCase;
+    readonly path: typeof KYC_API_ROUTES.submitCase;
     readonly request: SubmitKycCaseCommand;
     readonly response: KycCase;
   };
   readonly reviewCase: {
-    readonly request: ReviewKycCaseCommand;
+    readonly method: typeof KYC_API_METHODS.reviewCase;
+    readonly path: typeof KYC_API_ROUTES.reviewCase;
+    readonly request: ReviewKycCaseCommand & { readonly idempotencyKey: string };
     readonly response: KycCase;
   };
 }
