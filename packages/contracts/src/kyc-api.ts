@@ -18,7 +18,9 @@ export const KYC_API_ROUTES = {
   addDocument: '/v1/kyc/cases/:caseId/documents',
   removeDocument: '/v1/kyc/cases/:caseId/documents/:documentId',
   submitCase: '/v1/kyc/cases/:caseId/submit',
+  startReview: '/v1/admin/kyc/cases/:caseId/review/start',
   reviewCase: '/v1/admin/kyc/cases/:caseId/review',
+  cancelCase: '/v1/kyc/cases/:caseId/cancel',
 } as const;
 
 export const KYC_API_METHODS = {
@@ -29,7 +31,9 @@ export const KYC_API_METHODS = {
   addDocument: 'POST',
   removeDocument: 'DELETE',
   submitCase: 'POST',
+  startReview: 'POST',
   reviewCase: 'POST',
+  cancelCase: 'POST',
 } as const;
 
 export type KycApiRouteName = keyof typeof KYC_API_ROUTES;
@@ -65,6 +69,22 @@ export interface RemoveKycDocumentCommand {
   readonly expectedVersion: number;
 }
 
+export interface StartKycReviewCommand {
+  readonly caseId: string;
+  readonly reviewerId: string;
+  readonly expectedVersion: number;
+  readonly idempotencyKey: string;
+}
+
+export interface CancelKycCaseCommand {
+  readonly caseId: string;
+  readonly actorId: string;
+  readonly actorType: 'USER' | 'ADMIN' | 'SYSTEM';
+  readonly expectedVersion: number;
+  readonly reasonCode: string;
+  readonly idempotencyKey: string;
+}
+
 export interface KycApiContract {
   readonly createDraft: {
     readonly method: typeof KYC_API_METHODS.createDraft;
@@ -75,7 +95,7 @@ export interface KycApiContract {
   readonly getCase: {
     readonly method: typeof KYC_API_METHODS.getCase;
     readonly path: typeof KYC_API_ROUTES.getCase;
-    readonly request: { readonly caseId: string };
+    readonly request: { readonly caseId: string; readonly requesterId: string };
     readonly response: KycCase;
   };
   readonly listCases: {
@@ -108,10 +128,25 @@ export interface KycApiContract {
     readonly request: SubmitKycCaseCommand;
     readonly response: KycCase;
   };
+  readonly startReview: {
+    readonly method: typeof KYC_API_METHODS.startReview;
+    readonly path: typeof KYC_API_ROUTES.startReview;
+    readonly request: StartKycReviewCommand;
+    readonly response: KycCase;
+  };
   readonly reviewCase: {
     readonly method: typeof KYC_API_METHODS.reviewCase;
     readonly path: typeof KYC_API_ROUTES.reviewCase;
-    readonly request: ReviewKycCaseCommand & { readonly idempotencyKey: string };
+    readonly request: ReviewKycCaseCommand & {
+      readonly expectedVersion: number;
+      readonly idempotencyKey: string;
+    };
+    readonly response: KycCase;
+  };
+  readonly cancelCase: {
+    readonly method: typeof KYC_API_METHODS.cancelCase;
+    readonly path: typeof KYC_API_ROUTES.cancelCase;
+    readonly request: CancelKycCaseCommand;
     readonly response: KycCase;
   };
 }
