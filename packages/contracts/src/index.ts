@@ -23,6 +23,30 @@ export {
 } from './transaction.js';
 
 export {
+  SAVINGS_CONTRIBUTION_SOURCES,
+  SAVINGS_GOAL_STATUSES,
+  isFinalSavingsGoalStatus,
+  isSavingsContributionSource,
+  isSavingsGoalStatus,
+  type ContributeToSavingsGoalCommand,
+  type CreateSavingsGoalCommand,
+  type SavingsContribution,
+  type SavingsContributionSource,
+  type SavingsGoal,
+  type SavingsGoalStatus,
+  type UpdateSavingsGoalCommand,
+} from './savings-goal.js';
+
+export {
+  SAVINGS_GOAL_API_METHODS,
+  SAVINGS_GOAL_API_ROUTES,
+  type ListSavingsContributionsQuery,
+  type ListSavingsGoalsQuery,
+  type SavingsGoalApiContract,
+  type SavingsGoalApiRouteName,
+} from './savings-goal-api.js';
+
+export {
   TRANSACTION_LIMIT_PERIODS,
   TRANSACTION_LIMIT_SCOPES,
   TRANSACTION_LIMIT_STATUSES,
