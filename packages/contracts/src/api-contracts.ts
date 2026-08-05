@@ -1,4 +1,6 @@
 export * from './identity-api.js';
+export * from './kyc-api.js';
+export * from './ledger-api.js';
 export * from './wallet-api.js';
 export * from './payment-api.js';
 export * from './transfer-api.js';
