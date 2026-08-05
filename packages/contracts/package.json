@@ -18,6 +18,8 @@
     "./payment-api": { "types": "./dist/payment-api.d.ts", "import": "./dist/payment-api.js" },
     "./transfer-api": { "types": "./dist/transfer-api.d.ts", "import": "./dist/transfer-api.js" },
     "./card-api": { "types": "./dist/card-api.d.ts", "import": "./dist/card-api.js" },
+    "./savings-goal": { "types": "./dist/savings-goal.d.ts", "import": "./dist/savings-goal.js" },
+    "./savings-goal-api": { "types": "./dist/savings-goal-api.d.ts", "import": "./dist/savings-goal-api.js" },
     "./merchant-api": { "types": "./dist/merchant-api.d.ts", "import": "./dist/merchant-api.js" },
     "./terminal-api": { "types": "./dist/terminal-api.d.ts", "import": "./dist/terminal-api.js" },
     "./public-services-api": { "types": "./dist/public-services-api.d.ts", "import": "./dist/public-services-api.js" },
