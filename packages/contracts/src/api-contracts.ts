@@ -17,3 +17,5 @@ export * from './admin-api.js';
 export * from './integration-api.js';
 export * from './reconciliation-api.js';
 export * from './settlement-api.js';
+export * from './refund-api.js';
+export * from './dispute-api.js';
