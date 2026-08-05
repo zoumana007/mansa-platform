@@ -92,6 +92,7 @@ export interface LedgerBalance {
 
 export function isLedgerBalanced(entries: readonly LedgerEntryDraft[]): boolean {
   if (entries.length < 2) return false;
+  if (entries.some((entry) => entry.amount.amountMinor <= 0n)) return false;
 
   const currencies = new Set(entries.map((entry) => entry.amount.currency));
   if (currencies.size !== 1) return false;
@@ -104,7 +105,7 @@ export function isLedgerBalanced(entries: readonly LedgerEntryDraft[]): boolean 
     .filter((entry) => entry.direction === 'CREDIT')
     .reduce((sum, entry) => sum + entry.amount.amountMinor, 0n);
 
-  return debitTotal > 0n && debitTotal === creditTotal;
+  return debitTotal === creditTotal;
 }
 
 export function isLedgerAccountType(value: string): value is LedgerAccountType {
