@@ -1,3 +1,4 @@
+import type { PageRequest, PageResponse } from './pagination.js';
 import type {
   CreateMerchantCommand,
   CreateMerchantLocationCommand,
@@ -6,6 +7,8 @@ import type {
   MerchantDashboardSummary,
   MerchantLocation,
   MerchantMember,
+  MerchantMemberRole,
+  MerchantMemberStatus,
   MerchantStatus,
   Settlement,
   SettlementStatus,
@@ -19,88 +22,11 @@ export const MERCHANT_API_ROUTES = {
   listLocations: '/v1/merchants/:merchantId/locations',
   inviteMember: '/v1/merchants/:merchantId/members',
   listMembers: '/v1/merchants/:merchantId/members',
-  getDashboard: '/v1/merchants/:merchantId/dashboard',
   listSettlements: '/v1/merchants/:merchantId/settlements',
+  getDashboard: '/v1/merchants/:merchantId/dashboard',
 } as const;
 
-export type MerchantApiRouteName = keyof typeof MERCHANT_API_ROUTES;
-
-export interface ListMerchantsQuery {
-  readonly status?: MerchantStatus;
-  readonly countryCode?: string;
-}
-
-export interface ListMerchantLocationsQuery {
-  readonly isActive?: boolean;
-}
-
-export interface ListMerchantMembersQuery {
-  readonly locationId?: string;
-}
-
-export interface MerchantDashboardQuery {
-  readonly locationId?: string;
-  readonly periodStart: string;
-  readonly periodEnd: string;
-}
-
-export interface ListSettlementsQuery {
-  readonly status?: SettlementStatus;
-  readonly periodStart?: string;
-  readonly periodEnd?: string;
-}
-
-export interface MerchantApiContract {
-  readonly createMerchant: {
-    readonly method: 'POST';
-    readonly request: CreateMerchantCommand;
-    readonly response: Merchant;
-  };
-  readonly listMerchants: {
-    readonly method: 'GET';
-    readonly request: ListMerchantsQuery;
-    readonly response: readonly Merchant[];
-  };
-  readonly getMerchant: {
-    readonly method: 'GET';
-    readonly request: undefined;
-    readonly response: Merchant;
-  };
-  readonly createLocation: {
-    readonly method: 'POST';
-    readonly request: CreateMerchantLocationCommand;
-    readonly response: MerchantLocation;
-  };
-  readonly listLocations: {
-    readonly method: 'GET';
-    readonly request: ListMerchantLocationsQuery;
-    readonly response: readonly MerchantLocation[];
-  };
-  readonly inviteMember: {
-    readonly method: 'POST';
-    readonly request: InviteMerchantMemberCommand;
-    readonly response: MerchantMember;
-  };
-  readonly listMembers: {
-    readonly method: 'GET';
-    readonly request: ListMerchantMembersQuery;
-    readonly response: readonly MerchantMember[];
-  };
-  readonly getDashboard: {
-    readonly method: 'GET';
-    readonly request: MerchantDashboardQuery;
-    readonly response: MerchantDashboardSummary;
-  };
-  readonly listSettlements: {
-    readonly method: 'GET';
-    readonly request: ListSettlementsQuery;
-    readonly response: readonly Settlement[];
-  };
-}
-
-export const MERCHANT_API_METHODS: Readonly<
-  Record<MerchantApiRouteName, MerchantApiContract[MerchantApiRouteName]['method']>
-> = {
+export const MERCHANT_API_METHODS = {
   createMerchant: 'POST',
   listMerchants: 'GET',
   getMerchant: 'GET',
@@ -108,6 +34,97 @@ export const MERCHANT_API_METHODS: Readonly<
   listLocations: 'GET',
   inviteMember: 'POST',
   listMembers: 'GET',
-  getDashboard: 'GET',
   listSettlements: 'GET',
-};
+  getDashboard: 'GET',
+} as const;
+
+export type MerchantApiRouteName = keyof typeof MERCHANT_API_ROUTES;
+
+export interface ListMerchantsQuery extends PageRequest {
+  readonly ownerUserId?: string;
+  readonly countryCode?: string;
+  readonly status?: MerchantStatus;
+}
+
+export interface ListMerchantLocationsQuery extends PageRequest {
+  readonly merchantId: string;
+  readonly isActive?: boolean;
+}
+
+export interface ListMerchantMembersQuery extends PageRequest {
+  readonly merchantId: string;
+  readonly role?: MerchantMemberRole;
+  readonly status?: MerchantMemberStatus;
+  readonly locationId?: string;
+}
+
+export interface ListSettlementsQuery extends PageRequest {
+  readonly merchantId: string;
+  readonly status?: SettlementStatus;
+  readonly periodStart?: string;
+  readonly periodEnd?: string;
+}
+
+export interface MerchantDashboardQuery {
+  readonly merchantId: string;
+  readonly locationId?: string;
+  readonly periodStart: string;
+  readonly periodEnd: string;
+}
+
+export interface MerchantApiContract {
+  readonly createMerchant: {
+    readonly method: typeof MERCHANT_API_METHODS.createMerchant;
+    readonly path: typeof MERCHANT_API_ROUTES.createMerchant;
+    readonly request: CreateMerchantCommand & { readonly idempotencyKey: string };
+    readonly response: Merchant;
+  };
+  readonly listMerchants: {
+    readonly method: typeof MERCHANT_API_METHODS.listMerchants;
+    readonly path: typeof MERCHANT_API_ROUTES.listMerchants;
+    readonly request: ListMerchantsQuery;
+    readonly response: PageResponse<Merchant>;
+  };
+  readonly getMerchant: {
+    readonly method: typeof MERCHANT_API_METHODS.getMerchant;
+    readonly path: typeof MERCHANT_API_ROUTES.getMerchant;
+    readonly request: { readonly merchantId: string };
+    readonly response: Merchant;
+  };
+  readonly createLocation: {
+    readonly method: typeof MERCHANT_API_METHODS.createLocation;
+    readonly path: typeof MERCHANT_API_ROUTES.createLocation;
+    readonly request: CreateMerchantLocationCommand & { readonly idempotencyKey: string };
+    readonly response: MerchantLocation;
+  };
+  readonly listLocations: {
+    readonly method: typeof MERCHANT_API_METHODS.listLocations;
+    readonly path: typeof MERCHANT_API_ROUTES.listLocations;
+    readonly request: ListMerchantLocationsQuery;
+    readonly response: PageResponse<MerchantLocation>;
+  };
+  readonly inviteMember: {
+    readonly method: typeof MERCHANT_API_METHODS.inviteMember;
+    readonly path: typeof MERCHANT_API_ROUTES.inviteMember;
+    readonly request: InviteMerchantMemberCommand & { readonly idempotencyKey: string };
+    readonly response: MerchantMember;
+  };
+  readonly listMembers: {
+    readonly method: typeof MERCHANT_API_METHODS.listMembers;
+    readonly path: typeof MERCHANT_API_ROUTES.listMembers;
+    readonly request: ListMerchantMembersQuery;
+    readonly response: PageResponse<MerchantMember>;
+  };
+  readonly listSettlements: {
+    readonly method: typeof MERCHANT_API_METHODS.listSettlements;
+    readonly path: typeof MERCHANT_API_ROUTES.listSettlements;
+    readonly request: ListSettlementsQuery;
+    readonly response: PageResponse<Settlement>;
+  };
+  readonly getDashboard: {
+    readonly method: typeof MERCHANT_API_METHODS.getDashboard;
+    readonly path: typeof MERCHANT_API_ROUTES.getDashboard;
+    readonly request: MerchantDashboardQuery;
+    readonly response: MerchantDashboardSummary;
+  };
+}
