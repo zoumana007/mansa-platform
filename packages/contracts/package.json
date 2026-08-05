@@ -22,6 +22,8 @@
     "./savings-goal-api": { "types": "./dist/savings-goal-api.d.ts", "import": "./dist/savings-goal-api.js" },
     "./budget": { "types": "./dist/budget.d.ts", "import": "./dist/budget.js" },
     "./budget-api": { "types": "./dist/budget-api.d.ts", "import": "./dist/budget-api.js" },
+    "./subscription": { "types": "./dist/subscription.d.ts", "import": "./dist/subscription.js" },
+    "./subscription-api": { "types": "./dist/subscription-api.d.ts", "import": "./dist/subscription-api.js" },
     "./merchant-api": { "types": "./dist/merchant-api.d.ts", "import": "./dist/merchant-api.js" },
     "./terminal-api": { "types": "./dist/terminal-api.d.ts", "import": "./dist/terminal-api.js" },
     "./public-services-api": { "types": "./dist/public-services-api.d.ts", "import": "./dist/public-services-api.js" },
