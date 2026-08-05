@@ -45,6 +45,8 @@
     "./transaction-history": { "types": "./dist/transaction-history.d.ts", "import": "./dist/transaction-history.js" },
     "./transaction-limits": { "types": "./dist/transaction-limits.d.ts", "import": "./dist/transaction-limits.js" },
     "./fee-policy": { "types": "./dist/fee-policy.d.ts", "import": "./dist/fee-policy.js" },
+    "./commission": { "types": "./dist/commission.d.ts", "import": "./dist/commission.js" },
+    "./commission-api": { "types": "./dist/commission-api.d.ts", "import": "./dist/commission-api.js" },
     "./payment-routing": { "types": "./dist/payment-routing.d.ts", "import": "./dist/payment-routing.js" },
     "./payment-attempt": { "types": "./dist/payment-attempt.d.ts", "import": "./dist/payment-attempt.js" },
     "./refund": { "types": "./dist/refund.d.ts", "import": "./dist/refund.js" },
