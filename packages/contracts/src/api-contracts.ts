@@ -22,3 +22,4 @@ export * from './settlement-api.js';
 export * from './refund-api.js';
 export * from './dispute-api.js';
 export * from './audit-api.js';
+export * from './webhook-api.js';
