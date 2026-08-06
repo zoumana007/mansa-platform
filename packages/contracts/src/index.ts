@@ -540,3 +540,34 @@ export {
   type WebhookSubscription,
   type WebhookSubscriptionStatus,
 } from './webhook.js';
+
+export {
+  DIRECTORY_CONTACT_CHANNELS,
+  DIRECTORY_PROFILE_STATUSES,
+  DIRECTORY_SUBSCRIPTION_TIERS,
+  canTransitionDirectoryProfileStatus,
+  isDirectoryContactChannel,
+  isDirectoryProfileStatus,
+  isDirectorySubscriptionTier,
+  isValidDirectoryGeoPoint,
+  type ChangeDirectoryProfileStatusCommand,
+  type CreateDirectoryProfileCommand,
+  type DirectoryContact,
+  type DirectoryContactChannel,
+  type DirectoryGeoPoint,
+  type DirectoryOpeningPeriod,
+  type DirectoryProfile,
+  type DirectoryProfileStatus,
+  type DirectorySearchQuery,
+  type DirectorySearchResult,
+  type DirectorySubscriptionTier,
+  type UpdateDirectoryProfileCommand,
+} from './directory.js';
+
+export {
+  DIRECTORY_API_METHODS,
+  DIRECTORY_API_ROUTES,
+  type DirectoryApiContract,
+  type DirectoryApiRouteName,
+  type ListDirectoryProfilesQuery,
+} from './directory-api.js';
