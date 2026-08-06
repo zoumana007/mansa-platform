@@ -64,7 +64,8 @@
     "./analytics-api": { "types": "./dist/analytics-api.d.ts", "import": "./dist/analytics-api.js" },
     "./operations": { "types": "./dist/operations.d.ts", "import": "./dist/operations.js" },
     "./promotion": { "types": "./dist/promotion.d.ts", "import": "./dist/promotion.js" },
-    "./catalog": { "types": "./dist/catalog.d.ts", "import": "./dist/catalog.js" }
+    "./catalog": { "types": "./dist/catalog.d.ts", "import": "./dist/catalog.js" },
+    "./order": { "types": "./dist/order.d.ts", "import": "./dist/order.js" }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
