@@ -65,7 +65,9 @@
     "./operations": { "types": "./dist/operations.d.ts", "import": "./dist/operations.js" },
     "./promotion": { "types": "./dist/promotion.d.ts", "import": "./dist/promotion.js" },
     "./catalog": { "types": "./dist/catalog.d.ts", "import": "./dist/catalog.js" },
-    "./order": { "types": "./dist/order.d.ts", "import": "./dist/order.js" }
+    "./order": { "types": "./dist/order.d.ts", "import": "./dist/order.js" },
+    "./invoice": { "types": "./dist/invoice.d.ts", "import": "./dist/invoice.js" },
+    "./invoice-api": { "types": "./dist/invoice-api.d.ts", "import": "./dist/invoice-api.js" }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
