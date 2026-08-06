@@ -60,6 +60,7 @@
     "./intelligence": { "types": "./dist/intelligence.d.ts", "import": "./dist/intelligence.js" },
     "./intelligence-api": { "types": "./dist/intelligence-api.d.ts", "import": "./dist/intelligence-api.js" },
     "./ai-governance": { "types": "./dist/ai-governance.d.ts", "import": "./dist/ai-governance.js" },
+    "./ai-governance-api": { "types": "./dist/ai-governance-api.d.ts", "import": "./dist/ai-governance-api.js" },
     "./analytics": { "types": "./dist/analytics.d.ts", "import": "./dist/analytics.js" },
     "./analytics-api": { "types": "./dist/analytics-api.d.ts", "import": "./dist/analytics-api.js" },
     "./operations": { "types": "./dist/operations.d.ts", "import": "./dist/operations.js" },
