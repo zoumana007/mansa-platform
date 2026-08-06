@@ -1,4 +1,3 @@
-import type { IdempotencyKey } from './idempotency.js';
 import type {
   CreateWebhookSubscriptionCommand,
   RetryWebhookDeliveryCommand,
@@ -85,9 +84,7 @@ export interface WebhookApiContract {
   readonly retryDelivery: {
     readonly method: typeof WEBHOOK_API_METHODS.retryDelivery;
     readonly route: typeof WEBHOOK_API_ROUTES.retryDelivery;
-    readonly request: RetryWebhookDeliveryCommand & {
-      readonly idempotencyKey: IdempotencyKey;
-    };
+    readonly request: RetryWebhookDeliveryCommand;
     readonly response: WebhookDelivery;
   };
 }
