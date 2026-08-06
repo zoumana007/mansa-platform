@@ -4,8 +4,13 @@ export type ReportFormat = (typeof REPORT_FORMATS)[number];
 export const REPORT_STATUSES = ['QUEUED', 'RUNNING', 'COMPLETED', 'FAILED', 'EXPIRED'] as const;
 export type ReportStatus = (typeof REPORT_STATUSES)[number];
 
+export const FINAL_REPORT_STATUSES = ['COMPLETED', 'FAILED', 'EXPIRED'] as const satisfies readonly ReportStatus[];
+
 export const METRIC_PERIODS = ['HOUR', 'DAY', 'WEEK', 'MONTH', 'QUARTER', 'YEAR'] as const;
 export type MetricPeriod = (typeof METRIC_PERIODS)[number];
+
+export const METRIC_UNITS = ['COUNT', 'AMOUNT_MINOR', 'PERCENTAGE', 'DURATION_MS'] as const;
+export type MetricUnit = (typeof METRIC_UNITS)[number];
 
 export interface AnalyticsDateRange {
   readonly from: string;
@@ -21,7 +26,7 @@ export interface MetricPoint {
 
 export interface MetricSeries {
   readonly metricKey: string;
-  readonly unit: 'COUNT' | 'AMOUNT_MINOR' | 'PERCENTAGE' | 'DURATION_MS';
+  readonly unit: MetricUnit;
   readonly currency?: string;
   readonly points: readonly MetricPoint[];
 }
@@ -69,4 +74,33 @@ export function isReportFormat(value: string): value is ReportFormat {
 
 export function isReportStatus(value: string): value is ReportStatus {
   return (REPORT_STATUSES as readonly string[]).includes(value);
+}
+
+export function isFinalReportStatus(value: ReportStatus): boolean {
+  return (FINAL_REPORT_STATUSES as readonly ReportStatus[]).includes(value);
+}
+
+export function isMetricPeriod(value: string): value is MetricPeriod {
+  return (METRIC_PERIODS as readonly string[]).includes(value);
+}
+
+export function isMetricUnit(value: string): value is MetricUnit {
+  return (METRIC_UNITS as readonly string[]).includes(value);
+}
+
+export function isValidAnalyticsDateRange(range: AnalyticsDateRange): boolean {
+  const from = Date.parse(range.from);
+  const to = Date.parse(range.to);
+
+  return range.timezone.trim().length > 0 && Number.isFinite(from) && Number.isFinite(to) && from <= to;
+}
+
+export function validateDashboardQuery(query: DashboardQuery): readonly string[] {
+  const errors: string[] = [];
+
+  if (!isValidAnalyticsDateRange(query.dateRange)) errors.push('INVALID_DATE_RANGE');
+  if (query.metricKeys.length === 0) errors.push('METRIC_KEYS_REQUIRED');
+  if (!isMetricPeriod(query.period)) errors.push('INVALID_METRIC_PERIOD');
+
+  return errors;
 }
