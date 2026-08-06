@@ -52,6 +52,19 @@ La vue technique des frontières, dépendances et flux financiers se trouve dans
 - Multi-pays, multi-devise, multi-langue et configuration administrable.
 - CI obligatoire avant fusion.
 
+## Grand livre financier
+
+Le premier contrat de grand livre est défini dans `packages/contracts/src/transaction.ts`. Il introduit les comptes comptables, les écritures débit/crédit, les journaux, les commandes de comptabilisation et d’annulation ainsi qu’une validation déterministe des invariants suivants :
+
+- au moins deux écritures par journal ;
+- montants strictement positifs ;
+- devise identique pour toutes les écritures d’un journal ;
+- égalité exacte entre les totaux débit et crédit ;
+- idempotence et référence métier obligatoires ;
+- annulation par journal compensatoire, jamais par modification d’une écriture publiée.
+
+Ce contrat est un socle partagé. La persistance PostgreSQL, la séquence globale, les verrous transactionnels, les projections de solde et les tests d’intégration doivent être ajoutés dans les modules backend avant toute utilisation réelle.
+
 ## Démarrage cible
 
 ```bash
