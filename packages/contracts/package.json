@@ -30,6 +30,8 @@
     "./notification-api": { "types": "./dist/notification-api.d.ts", "import": "./dist/notification-api.js" },
     "./support-api": { "types": "./dist/support-api.d.ts", "import": "./dist/support-api.js" },
     "./beneficiary-api": { "types": "./dist/beneficiary-api.d.ts", "import": "./dist/beneficiary-api.js" },
+    "./directory": { "types": "./dist/directory.d.ts", "import": "./dist/directory.js" },
+    "./directory-api": { "types": "./dist/directory-api.d.ts", "import": "./dist/directory-api.js" },
     "./webhook": { "types": "./dist/webhook.d.ts", "import": "./dist/webhook.js" },
     "./webhook-api": { "types": "./dist/webhook-api.d.ts", "import": "./dist/webhook-api.js" },
     "./authorization": { "types": "./dist/authorization.d.ts", "import": "./dist/authorization.js" },
