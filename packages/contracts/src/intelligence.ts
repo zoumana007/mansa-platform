@@ -74,10 +74,60 @@ export interface TransactionRiskAssessment {
   readonly expiresAt?: string;
 }
 
+export interface RiskAssessmentValidationResult {
+  readonly valid: boolean;
+  readonly errors: readonly string[];
+}
+
 export function isRiskDecision(value: string): value is RiskDecision {
   return (RISK_DECISIONS as readonly string[]).includes(value);
 }
 
 export function isRiskLevel(value: string): value is RiskLevel {
   return (RISK_LEVELS as readonly string[]).includes(value);
+}
+
+export function riskLevelForScore(score: number): RiskLevel {
+  if (!Number.isInteger(score) || score < 0 || score > 100) {
+    throw new Error('riskScore must be an integer between 0 and 100');
+  }
+
+  if (score < 30) return 'LOW';
+  if (score < 60) return 'MEDIUM';
+  if (score < 85) return 'HIGH';
+  return 'CRITICAL';
+}
+
+export function validateTransactionRiskAssessment(
+  assessment: TransactionRiskAssessment,
+): RiskAssessmentValidationResult {
+  const errors: string[] = [];
+
+  if (!assessment.assessmentId.trim()) errors.push('assessmentId is required');
+  if (!assessment.transactionId.trim()) errors.push('transactionId is required');
+  if (!assessment.modelVersion.trim()) errors.push('modelVersion is required');
+  if (!assessment.assessedAt.trim()) errors.push('assessedAt is required');
+
+  if (!Number.isInteger(assessment.riskScore) || assessment.riskScore < 0 || assessment.riskScore > 100) {
+    errors.push('riskScore must be an integer between 0 and 100');
+  } else if (riskLevelForScore(assessment.riskScore) !== assessment.riskLevel) {
+    errors.push('riskLevel is inconsistent with riskScore');
+  }
+
+  if (assessment.riskLevel === 'CRITICAL' && assessment.decision === 'ALLOW') {
+    errors.push('CRITICAL assessments cannot be allowed');
+  }
+
+  if (assessment.riskLevel === 'LOW' && assessment.decision === 'BLOCK') {
+    errors.push('LOW assessments cannot be blocked');
+  }
+
+  for (const signal of assessment.signals) {
+    if (!signal.code.trim()) errors.push('risk signal code is required');
+    if (!Number.isFinite(signal.score) || signal.score < 0 || signal.score > 100) {
+      errors.push(`risk signal ${signal.code || '<unknown>'} score must be between 0 and 100`);
+    }
+  }
+
+  return { valid: errors.length === 0, errors };
 }
