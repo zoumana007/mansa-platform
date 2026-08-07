@@ -10,6 +10,12 @@ export type IncidentSeverity = (typeof INCIDENT_SEVERITIES)[number];
 export const METRIC_UNITS = ['COUNT', 'MILLISECONDS', 'BYTES', 'RATIO', 'AMOUNT_MINOR'] as const;
 export type MetricUnit = (typeof METRIC_UNITS)[number];
 
+export const SPAN_KINDS = ['INTERNAL', 'SERVER', 'CLIENT', 'PRODUCER', 'CONSUMER'] as const;
+export type SpanKind = (typeof SPAN_KINDS)[number];
+
+export const SPAN_STATUSES = ['UNSET', 'OK', 'ERROR'] as const;
+export type SpanStatus = (typeof SPAN_STATUSES)[number];
+
 export interface CorrelationContext {
   readonly correlationId: string;
   readonly requestId?: string;
@@ -18,6 +24,26 @@ export interface CorrelationContext {
   readonly actorId?: string;
   readonly sessionId?: string;
   readonly countryCode?: string;
+}
+
+export interface TraceContext {
+  readonly traceId: string;
+  readonly spanId: string;
+  readonly traceFlags?: string;
+  readonly traceState?: string;
+}
+
+export interface SpanRecord {
+  readonly name: string;
+  readonly service: string;
+  readonly kind: SpanKind;
+  readonly status: SpanStatus;
+  readonly startedAt: string;
+  readonly endedAt?: string;
+  readonly trace: TraceContext;
+  readonly parentSpanId?: string;
+  readonly attributes?: Readonly<Record<string, string | number | boolean>>;
+  readonly errorCode?: string;
 }
 
 export interface StructuredLogEvent {
@@ -95,6 +121,10 @@ const FORBIDDEN_METRIC_LABELS = new Set([
   'pan',
 ]);
 
+const HEX_32 = /^[0-9a-f]{32}$/i;
+const HEX_16 = /^[0-9a-f]{16}$/i;
+const HEX_2 = /^[0-9a-f]{2}$/i;
+
 function normalizeKey(key: string): string {
   return key.replace(/[^a-z0-9]/gi, '').toLowerCase();
 }
@@ -159,6 +189,53 @@ export function isValidStructuredLogEvent(event: StructuredLogEvent): boolean {
     event.message.trim().length > 0 &&
     isValidCorrelationContext(event.correlation)
   );
+}
+
+export function isValidTraceId(traceId: string): boolean {
+  return HEX_32.test(traceId) && !/^0{32}$/i.test(traceId);
+}
+
+export function isValidSpanId(spanId: string): boolean {
+  return HEX_16.test(spanId) && !/^0{16}$/i.test(spanId);
+}
+
+export function isValidTraceContext(context: TraceContext): boolean {
+  return (
+    isValidTraceId(context.traceId) &&
+    isValidSpanId(context.spanId) &&
+    (context.traceFlags === undefined || HEX_2.test(context.traceFlags))
+  );
+}
+
+export function isValidSpanRecord(span: SpanRecord): boolean {
+  if (span.name.trim().length === 0 || span.service.trim().length === 0) return false;
+  if (!SPAN_KINDS.includes(span.kind) || !SPAN_STATUSES.includes(span.status)) return false;
+  if (!Number.isFinite(Date.parse(span.startedAt))) return false;
+  if (span.endedAt !== undefined) {
+    if (!Number.isFinite(Date.parse(span.endedAt))) return false;
+    if (Date.parse(span.endedAt) < Date.parse(span.startedAt)) return false;
+  }
+  if (!isValidTraceContext(span.trace)) return false;
+  if (span.parentSpanId !== undefined && !isValidSpanId(span.parentSpanId)) return false;
+  return true;
+}
+
+export function buildTraceParent(context: TraceContext): string {
+  if (!isValidTraceContext(context)) {
+    throw new Error('Invalid trace context');
+  }
+  return `00-${context.traceId.toLowerCase()}-${context.spanId.toLowerCase()}-${(context.traceFlags ?? '00').toLowerCase()}`;
+}
+
+export function parseTraceParent(value: string): TraceContext | undefined {
+  const match = /^00-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})$/i.exec(value.trim());
+  if (!match) return undefined;
+  const context: TraceContext = {
+    traceId: match[1].toLowerCase(),
+    spanId: match[2].toLowerCase(),
+    traceFlags: match[3].toLowerCase(),
+  };
+  return isValidTraceContext(context) ? context : undefined;
 }
 
 export function isAllowedMetricLabel(label: string): boolean {
