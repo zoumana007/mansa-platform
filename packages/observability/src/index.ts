@@ -81,6 +81,35 @@ function normalizeKey(key: string): string {
   return key.replace(/[^a-z0-9]/gi, '').toLowerCase();
 }
 
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== 'object' || value === null) return false;
+  const prototype = Object.getPrototypeOf(value) as object | null;
+  return prototype === Object.prototype || prototype === null;
+}
+
+function redactLogValue(value: unknown, activePath: WeakSet<object>): unknown {
+  if (Array.isArray(value)) {
+    if (activePath.has(value)) return '[CIRCULAR]';
+    activePath.add(value);
+    const redacted = value.map((item) => redactLogValue(item, activePath));
+    activePath.delete(value);
+    return redacted;
+  }
+
+  if (!isPlainRecord(value)) return value;
+  if (activePath.has(value)) return '[CIRCULAR]';
+
+  activePath.add(value);
+  const redacted = Object.fromEntries(
+    Object.entries(value).map(([key, nestedValue]) => [
+      key,
+      isSensitiveLogKey(key) ? '[REDACTED]' : redactLogValue(nestedValue, activePath),
+    ]),
+  );
+  activePath.delete(value);
+  return redacted;
+}
+
 export function isSensitiveLogKey(key: string): boolean {
   const normalized = normalizeKey(key);
   return SENSITIVE_KEY_FRAGMENTS.some((fragment) => normalized.includes(fragment));
@@ -89,9 +118,15 @@ export function isSensitiveLogKey(key: string): boolean {
 export function redactLogAttributes(
   attributes: Readonly<Record<string, unknown>>,
 ): Readonly<Record<string, unknown>> {
-  return Object.fromEntries(
-    Object.entries(attributes).map(([key, value]) => [key, isSensitiveLogKey(key) ? '[REDACTED]' : value]),
-  );
+  return redactLogValue(attributes, new WeakSet<object>()) as Readonly<Record<string, unknown>>;
+}
+
+export function sanitizeStructuredLogEvent(event: StructuredLogEvent): StructuredLogEvent {
+  if (!event.attributes) return event;
+  return {
+    ...event,
+    attributes: redactLogAttributes(event.attributes),
+  };
 }
 
 export function isValidCorrelationContext(context: CorrelationContext): boolean {
