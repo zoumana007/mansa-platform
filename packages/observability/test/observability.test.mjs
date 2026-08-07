@@ -3,6 +3,8 @@ import test from 'node:test';
 
 import {
   classifyHealth,
+  isAllowedMetricLabel,
+  isValidMetricDefinition,
   isValidStructuredLogEvent,
   redactLogAttributes,
   sanitizeStructuredLogEvent,
@@ -78,6 +80,47 @@ test('isValidStructuredLogEvent impose timestamp, service et corrélation', () =
       event: 'wallet.read',
       message: 'Wallet read',
       correlation: { correlationId: '' },
+    }),
+    false,
+  );
+});
+
+test('les labels de métriques interdisent les identifiants à cardinalité non bornée', () => {
+  assert.equal(isAllowedMetricLabel('countryCode'), true);
+  assert.equal(isAllowedMetricLabel('payment_method'), true);
+  assert.equal(isAllowedMetricLabel('userId'), false);
+  assert.equal(isAllowedMetricLabel('transaction_id'), false);
+  assert.equal(isAllowedMetricLabel('correlation-id'), false);
+  assert.equal(isAllowedMetricLabel('phoneNumber'), false);
+});
+
+test('isValidMetricDefinition valide nom unité unicité et labels', () => {
+  assert.equal(
+    isValidMetricDefinition({
+      name: 'payments_authorized_total',
+      description: 'Nombre de paiements autorisés',
+      unit: 'COUNT',
+      allowedLabels: ['countryCode', 'paymentMethod'],
+    }),
+    true,
+  );
+
+  assert.equal(
+    isValidMetricDefinition({
+      name: 'payments_authorized_total',
+      description: 'Nombre de paiements autorisés',
+      unit: 'COUNT',
+      allowedLabels: ['countryCode', 'country_code'],
+    }),
+    false,
+  );
+
+  assert.equal(
+    isValidMetricDefinition({
+      name: 'payments_authorized_total',
+      description: 'Nombre de paiements autorisés',
+      unit: 'COUNT',
+      allowedLabels: ['userId'],
     }),
     false,
   );
