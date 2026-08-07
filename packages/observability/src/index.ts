@@ -7,6 +7,9 @@ export type ServiceHealthStatus = (typeof SERVICE_HEALTH_STATUSES)[number];
 export const INCIDENT_SEVERITIES = ['P1', 'P2', 'P3', 'P4'] as const;
 export type IncidentSeverity = (typeof INCIDENT_SEVERITIES)[number];
 
+export const METRIC_UNITS = ['COUNT', 'MILLISECONDS', 'BYTES', 'RATIO', 'AMOUNT_MINOR'] as const;
+export type MetricUnit = (typeof METRIC_UNITS)[number];
+
 export interface CorrelationContext {
   readonly correlationId: string;
   readonly requestId?: string;
@@ -58,7 +61,7 @@ export interface IncidentRecord {
 export interface MetricDefinition {
   readonly name: string;
   readonly description: string;
-  readonly unit: 'COUNT' | 'MILLISECONDS' | 'BYTES' | 'RATIO' | 'AMOUNT_MINOR';
+  readonly unit: MetricUnit;
   readonly allowedLabels: readonly string[];
 }
 
@@ -76,6 +79,21 @@ const SENSITIVE_KEY_FRAGMENTS = [
   'cardnumber',
   'privatekey',
 ] as const;
+
+const FORBIDDEN_METRIC_LABELS = new Set([
+  'userid',
+  'transactionid',
+  'requestid',
+  'correlationid',
+  'sessionid',
+  'traceid',
+  'spanid',
+  'phonenumber',
+  'email',
+  'emailaddress',
+  'cardnumber',
+  'pan',
+]);
 
 function normalizeKey(key: string): string {
   return key.replace(/[^a-z0-9]/gi, '').toLowerCase();
@@ -141,6 +159,25 @@ export function isValidStructuredLogEvent(event: StructuredLogEvent): boolean {
     event.message.trim().length > 0 &&
     isValidCorrelationContext(event.correlation)
   );
+}
+
+export function isAllowedMetricLabel(label: string): boolean {
+  const normalized = normalizeKey(label);
+  return normalized.length > 0 && !FORBIDDEN_METRIC_LABELS.has(normalized);
+}
+
+export function isValidMetricDefinition(definition: MetricDefinition): boolean {
+  if (definition.name.trim().length === 0 || definition.description.trim().length === 0) {
+    return false;
+  }
+
+  if (!METRIC_UNITS.includes(definition.unit)) return false;
+
+  const normalizedLabels = definition.allowedLabels.map(normalizeKey);
+  if (normalizedLabels.some((label) => label.length === 0)) return false;
+  if (new Set(normalizedLabels).size !== normalizedLabels.length) return false;
+
+  return definition.allowedLabels.every(isAllowedMetricLabel);
 }
 
 export function classifyHealth(
