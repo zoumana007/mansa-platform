@@ -1,8 +1,11 @@
 import type { PageRequest, PageResponse } from './pagination.js';
 import type {
+  CancelPublicObligationCommand,
   CollectPublicPaymentCommand,
   CreatePublicObligationCommand,
   DecideScholarshipCommand,
+  DisputePublicObligationCommand,
+  IssuePublicObligationCommand,
   IssueStudentCardCommand,
   PublicObligation,
   PublicObligationStatus,
@@ -22,6 +25,9 @@ export const PUBLIC_SERVICES_API_ROUTES = {
   createObligation: '/v1/public-services/obligations',
   listObligations: '/v1/public-services/obligations',
   getObligation: '/v1/public-services/obligations/:obligationId',
+  issueObligation: '/v1/public-services/obligations/:obligationId/issuance',
+  disputeObligation: '/v1/public-services/obligations/:obligationId/disputes',
+  cancelObligation: '/v1/public-services/obligations/:obligationId/cancellation',
   collectPayment: '/v1/public-services/obligations/:obligationId/payments',
   getReceipt: '/v1/public-services/receipts/:receiptId',
   listScholarships: '/v1/public-services/scholarships',
@@ -37,6 +43,9 @@ export const PUBLIC_SERVICES_API_METHODS = {
   createObligation: 'POST',
   listObligations: 'GET',
   getObligation: 'GET',
+  issueObligation: 'POST',
+  disputeObligation: 'POST',
+  cancelObligation: 'POST',
   collectPayment: 'POST',
   getReceipt: 'GET',
   listScholarships: 'GET',
@@ -113,6 +122,24 @@ export interface PublicServicesApiContract {
     method: typeof PUBLIC_SERVICES_API_METHODS.getObligation;
     path: typeof PUBLIC_SERVICES_API_ROUTES.getObligation;
     request: { obligationId: string };
+    response: PublicObligation;
+  };
+  issueObligation: {
+    method: typeof PUBLIC_SERVICES_API_METHODS.issueObligation;
+    path: typeof PUBLIC_SERVICES_API_ROUTES.issueObligation;
+    request: IssuePublicObligationCommand;
+    response: PublicObligation;
+  };
+  disputeObligation: {
+    method: typeof PUBLIC_SERVICES_API_METHODS.disputeObligation;
+    path: typeof PUBLIC_SERVICES_API_ROUTES.disputeObligation;
+    request: DisputePublicObligationCommand;
+    response: PublicObligation;
+  };
+  cancelObligation: {
+    method: typeof PUBLIC_SERVICES_API_METHODS.cancelObligation;
+    path: typeof PUBLIC_SERVICES_API_ROUTES.cancelObligation;
+    request: CancelPublicObligationCommand;
     response: PublicObligation;
   };
   collectPayment: {
