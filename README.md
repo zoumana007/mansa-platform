@@ -54,16 +54,20 @@ La vue technique des frontières, dépendances et flux financiers se trouve dans
 
 ## Grand livre financier
 
-Le premier contrat de grand livre est défini dans `packages/contracts/src/transaction.ts`. Il introduit les comptes comptables, les écritures débit/crédit, les journaux, les commandes de comptabilisation et d’annulation ainsi qu’une validation déterministe des invariants suivants :
+Le contrat métier de référence du grand livre est défini dans `packages/contracts/src/ledger.ts`. Il introduit les comptes comptables, les écritures débit/crédit, les transactions comptables, les commandes de publication et de compensation ainsi qu’une validation déterministe des invariants suivants :
 
-- au moins deux écritures par journal ;
+- au moins deux écritures par transaction comptable ;
 - montants strictement positifs ;
-- devise identique pour toutes les écritures d’un journal ;
+- devise identique pour toutes les écritures ;
 - égalité exacte entre les totaux débit et crédit ;
-- idempotence et référence métier obligatoires ;
-- annulation par journal compensatoire, jamais par modification d’une écriture publiée.
+- idempotence et corrélation obligatoires au niveau des commandes ;
+- compensation par nouvelle transaction, jamais par modification d’une écriture publiée.
 
-Ce contrat est un socle partagé. La persistance PostgreSQL, la séquence globale, les verrous transactionnels, les projections de solde et les tests d’intégration doivent être ajoutés dans les modules backend avant toute utilisation réelle.
+Le contrat de transport interne est défini dans `packages/contracts/src/ledger-api.ts`. Il expose les routes internes de publication, lecture, compensation, consultation de compte, solde et écritures. Le package `@mansa/contracts` publie explicitement les sous-chemins `./ledger` et `./ledger-api`.
+
+Les invariants du ledger disposent de tests runtime dans `packages/contracts/test/ledger.test.mjs`. Le script de test du package compile d’abord les contrats puis exécute `node --test`, afin que les tests puissent importer les fichiers JavaScript générés sans dépendre d’artefacts déjà présents dans le dépôt.
+
+La persistance PostgreSQL, la séquence globale, les verrous transactionnels, les projections de solde, l’outbox et les tests d’intégration doivent encore être ajoutés dans les modules backend avant toute utilisation réelle. La spécification fonctionnelle et le contrat d’intégration sont documentés dans `mansa-docs/volume-01-socle-technique/09-grand-livre-et-integrite-financiere.md` et `mansa-docs/volume-01-socle-technique/10-contrat-api-ledger.md`.
 
 ## Démarrage cible
 
