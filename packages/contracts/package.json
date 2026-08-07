@@ -32,6 +32,7 @@
     "./beneficiary-api": { "types": "./dist/beneficiary-api.d.ts", "import": "./dist/beneficiary-api.js" },
     "./directory": { "types": "./dist/directory.d.ts", "import": "./dist/directory.js" },
     "./directory-api": { "types": "./dist/directory-api.d.ts", "import": "./dist/directory-api.js" },
+    "./loyalty-api": { "types": "./dist/loyalty-api.d.ts", "import": "./dist/loyalty-api.js" },
     "./webhook": { "types": "./dist/webhook.d.ts", "import": "./dist/webhook.js" },
     "./webhook-api": { "types": "./dist/webhook-api.d.ts", "import": "./dist/webhook-api.js" },
     "./authorization": { "types": "./dist/authorization.d.ts", "import": "./dist/authorization.js" },
@@ -53,9 +54,13 @@
     "./payment-routing": { "types": "./dist/payment-routing.d.ts", "import": "./dist/payment-routing.js" },
     "./payment-attempt": { "types": "./dist/payment-attempt.d.ts", "import": "./dist/payment-attempt.js" },
     "./refund": { "types": "./dist/refund.d.ts", "import": "./dist/refund.js" },
+    "./refund-api": { "types": "./dist/refund-api.d.ts", "import": "./dist/refund-api.js" },
     "./dispute": { "types": "./dist/dispute.d.ts", "import": "./dist/dispute.js" },
+    "./dispute-api": { "types": "./dist/dispute-api.d.ts", "import": "./dist/dispute-api.js" },
     "./reconciliation": { "types": "./dist/reconciliation.d.ts", "import": "./dist/reconciliation.js" },
+    "./reconciliation-api": { "types": "./dist/reconciliation-api.d.ts", "import": "./dist/reconciliation-api.js" },
     "./settlement": { "types": "./dist/settlement.d.ts", "import": "./dist/settlement.js" },
+    "./settlement-api": { "types": "./dist/settlement-api.d.ts", "import": "./dist/settlement-api.js" },
     "./settlement-schedule": { "types": "./dist/settlement-schedule.d.ts", "import": "./dist/settlement-schedule.js" },
     "./settlement-destination": { "types": "./dist/settlement-destination.d.ts", "import": "./dist/settlement-destination.js" },
     "./correlation": { "types": "./dist/correlation.d.ts", "import": "./dist/correlation.js" },
@@ -74,7 +79,10 @@
     "./inventory-api": { "types": "./dist/inventory-api.d.ts", "import": "./dist/inventory-api.js" },
     "./invoice": { "types": "./dist/invoice.d.ts", "import": "./dist/invoice.js" },
     "./invoice-api": { "types": "./dist/invoice-api.d.ts", "import": "./dist/invoice-api.js" },
-    "./administration-api": { "types": "./dist/administration-api.d.ts", "import": "./dist/administration-api.js" }
+    "./admin-api": { "types": "./dist/admin-api.d.ts", "import": "./dist/admin-api.js" },
+    "./administration-api": { "types": "./dist/administration-api.d.ts", "import": "./dist/administration-api.js" },
+    "./integration-api": { "types": "./dist/integration-api.d.ts", "import": "./dist/integration-api.js" },
+    "./audit-api": { "types": "./dist/audit-api.d.ts", "import": "./dist/audit-api.js" }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
