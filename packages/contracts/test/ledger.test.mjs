@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   isLedgerBalanced,
   validateLedgerEntries,
+  validatePostLedgerTransactionCommand,
 } from '../dist/ledger.js';
 
 const money = (amountMinor, currency = 'XOF') => ({ amountMinor, currency });
@@ -12,6 +13,16 @@ const balancedEntries = [
   { accountId: 'wallet:user', direction: 'DEBIT', amount: money(10_000n) },
   { accountId: 'cash:platform', direction: 'CREDIT', amount: money(10_000n) },
 ];
+
+const validCommand = {
+  reference: 'PAY-2026-0001',
+  transactionType: 'PAYMENT',
+  entries: balancedEntries,
+  idempotencyKey: 'idem-00000001',
+  correlationId: 'corr-0001',
+  countryCode: 'ML',
+  occurredAt: '2026-08-07T12:00:00.000Z',
+};
 
 test('accepts a balanced double-entry transaction', () => {
   const result = validateLedgerEntries(balancedEntries);
@@ -69,4 +80,50 @@ test('rejects unbalanced debit and credit totals', () => {
     { accountId: 'wallet:user', direction: 'DEBIT', amount: money(10_000n) },
     { accountId: 'cash:platform', direction: 'CREDIT', amount: money(9_500n) },
   ]), false);
+});
+
+test('accepts a complete posting command', () => {
+  const result = validatePostLedgerTransactionCommand(validCommand);
+
+  assert.equal(result.valid, true);
+  assert.deepEqual(result.errors, []);
+  assert.equal(result.entries.valid, true);
+});
+
+test('rejects malformed posting command fields', () => {
+  const result = validatePostLedgerTransactionCommand({
+    ...validCommand,
+    reference: ' ',
+    transactionType: '',
+    idempotencyKey: 'short',
+    correlationId: '',
+    countryCode: 'ml',
+    occurredAt: 'not-a-date',
+  });
+
+  assert.equal(result.valid, false);
+  for (const code of [
+    'INVALID_REFERENCE',
+    'INVALID_TRANSACTION_TYPE',
+    'INVALID_IDEMPOTENCY_KEY',
+    'INVALID_CORRELATION_ID',
+    'INVALID_COUNTRY_CODE',
+    'INVALID_OCCURRED_AT',
+  ]) {
+    assert.ok(result.errors.some((error) => error.code === code));
+  }
+});
+
+test('propagates invalid financial entries to command validation', () => {
+  const result = validatePostLedgerTransactionCommand({
+    ...validCommand,
+    entries: [
+      { accountId: 'wallet:user', direction: 'DEBIT', amount: money(10_000n) },
+      { accountId: 'cash:platform', direction: 'CREDIT', amount: money(9_000n) },
+    ],
+  });
+
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((error) => error.code === 'INVALID_ENTRIES'));
+  assert.ok(result.entries.errors.some((error) => error.code === 'UNBALANCED_TOTALS'));
 });
