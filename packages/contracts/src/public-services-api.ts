@@ -19,6 +19,14 @@ import type {
   StudentCardStatus,
 } from './public-services.js';
 
+export type {
+  CancelPublicObligationCommand,
+  CollectPublicPaymentCommand,
+  CreatePublicObligationCommand,
+  DisputePublicObligationCommand,
+  IssuePublicObligationCommand,
+} from './public-services.js';
+
 export const PUBLIC_SERVICES_API_ROUTES = {
   listOrganizations: '/v1/public-services/organizations',
   listCatalogEntries: '/v1/public-services/catalog',
