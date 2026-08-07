@@ -27,6 +27,7 @@
     "./merchant-api": { "types": "./dist/merchant-api.d.ts", "import": "./dist/merchant-api.js" },
     "./terminal-api": { "types": "./dist/terminal-api.d.ts", "import": "./dist/terminal-api.js" },
     "./public-services-api": { "types": "./dist/public-services-api.d.ts", "import": "./dist/public-services-api.js" },
+    "./public-agent-api": { "types": "./dist/public-agent-api.d.ts", "import": "./dist/public-agent-api.js" },
     "./notification-api": { "types": "./dist/notification-api.d.ts", "import": "./dist/notification-api.js" },
     "./support-api": { "types": "./dist/support-api.d.ts", "import": "./dist/support-api.js" },
     "./beneficiary-api": { "types": "./dist/beneficiary-api.d.ts", "import": "./dist/beneficiary-api.js" },
