@@ -24,12 +24,24 @@ export const LEDGER_VALIDATION_ERROR_CODES = [
   'UNBALANCED_TOTALS',
 ] as const;
 
+export const LEDGER_COMMAND_VALIDATION_ERROR_CODES = [
+  'INVALID_REFERENCE',
+  'INVALID_TRANSACTION_TYPE',
+  'INVALID_IDEMPOTENCY_KEY',
+  'INVALID_CORRELATION_ID',
+  'INVALID_COUNTRY_CODE',
+  'INVALID_OCCURRED_AT',
+  'INVALID_ENTRIES',
+] as const;
+
 export type LedgerAccountType = (typeof LEDGER_ACCOUNT_TYPES)[number];
 export type LedgerEntryDirection = (typeof LEDGER_ENTRY_DIRECTIONS)[number];
 export type LedgerTransactionStatus =
   (typeof LEDGER_TRANSACTION_STATUSES)[number];
 export type LedgerValidationErrorCode =
   (typeof LEDGER_VALIDATION_ERROR_CODES)[number];
+export type LedgerCommandValidationErrorCode =
+  (typeof LEDGER_COMMAND_VALIDATION_ERROR_CODES)[number];
 
 export interface LedgerAccount {
   readonly id: string;
@@ -114,6 +126,17 @@ export interface LedgerValidationResult {
   readonly errors: readonly LedgerValidationError[];
 }
 
+export interface LedgerCommandValidationError {
+  readonly code: LedgerCommandValidationErrorCode;
+  readonly message: string;
+}
+
+export interface LedgerCommandValidationResult {
+  readonly valid: boolean;
+  readonly errors: readonly LedgerCommandValidationError[];
+  readonly entries: LedgerValidationResult;
+}
+
 export function validateLedgerEntries(
   entries: readonly LedgerEntryDraft[],
 ): LedgerValidationResult {
@@ -169,6 +192,55 @@ export function validateLedgerEntries(
   };
 }
 
+export function validatePostLedgerTransactionCommand(
+  command: PostLedgerTransactionCommand,
+): LedgerCommandValidationResult {
+  const errors: LedgerCommandValidationError[] = [];
+  const entries = validateLedgerEntries(command.entries);
+
+  if (command.reference.trim().length === 0) {
+    errors.push({ code: 'INVALID_REFERENCE', message: 'Reference is required.' });
+  }
+  if (command.transactionType.trim().length === 0) {
+    errors.push({
+      code: 'INVALID_TRANSACTION_TYPE',
+      message: 'Transaction type is required.',
+    });
+  }
+  if (command.idempotencyKey.trim().length < 8) {
+    errors.push({
+      code: 'INVALID_IDEMPOTENCY_KEY',
+      message: 'Idempotency key must contain at least 8 characters.',
+    });
+  }
+  if (command.correlationId.trim().length === 0) {
+    errors.push({
+      code: 'INVALID_CORRELATION_ID',
+      message: 'Correlation id is required.',
+    });
+  }
+  if (!/^[A-Z]{2}$/.test(command.countryCode)) {
+    errors.push({
+      code: 'INVALID_COUNTRY_CODE',
+      message: 'Country code must be an ISO 3166-1 alpha-2 code.',
+    });
+  }
+  if (Number.isNaN(Date.parse(command.occurredAt))) {
+    errors.push({
+      code: 'INVALID_OCCURRED_AT',
+      message: 'Occurred-at must be a valid date-time.',
+    });
+  }
+  if (!entries.valid) {
+    errors.push({
+      code: 'INVALID_ENTRIES',
+      message: 'Ledger entries violate one or more financial invariants.',
+    });
+  }
+
+  return { valid: errors.length === 0, errors, entries };
+}
+
 export function isLedgerBalanced(entries: readonly LedgerEntryDraft[]): boolean {
   return validateLedgerEntries(entries).valid;
 }
@@ -194,5 +266,13 @@ export function isLedgerValidationErrorCode(
 ): value is LedgerValidationErrorCode {
   return LEDGER_VALIDATION_ERROR_CODES.includes(
     value as LedgerValidationErrorCode,
+  );
+}
+
+export function isLedgerCommandValidationErrorCode(
+  value: string,
+): value is LedgerCommandValidationErrorCode {
+  return LEDGER_COMMAND_VALIDATION_ERROR_CODES.includes(
+    value as LedgerCommandValidationErrorCode,
   );
 }
