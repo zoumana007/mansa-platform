@@ -134,3 +134,13 @@ export {
   type LedgerEntryPageOrderErrorCode,
   type LedgerEntryPageOrderValidationResult,
 } from './ledger-entry-page-order.js';
+
+export {
+  LEDGER_ENTRY_NEXT_CURSOR_ERROR_CODES,
+  createLedgerEntryCursorFromEntry,
+  createLedgerEntryNextCursor,
+  isLedgerEntryNextCursorErrorCode,
+  type LedgerEntryNextCursorError,
+  type LedgerEntryNextCursorErrorCode,
+  type LedgerEntryNextCursorResult,
+} from './ledger-entry-next-cursor.js';
