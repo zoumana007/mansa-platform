@@ -101,3 +101,15 @@ export {
   type LedgerEntryPageValidationErrorCode,
   type LedgerEntryPageValidationResult,
 } from './ledger-entry-page.js';
+
+export {
+  LEDGER_ENTRY_CURSOR_VALIDATION_ERROR_CODES,
+  LEDGER_ENTRY_CURSOR_VERSIONS,
+  isLedgerEntryCursorValidationErrorCode,
+  validateLedgerEntryCursor,
+  type LedgerEntryCursor,
+  type LedgerEntryCursorValidationError,
+  type LedgerEntryCursorValidationErrorCode,
+  type LedgerEntryCursorValidationResult,
+  type LedgerEntryCursorVersion,
+} from './ledger-entry-cursor.js';
