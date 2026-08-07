@@ -42,6 +42,15 @@ export const LEDGER_REVERSAL_COMMAND_VALIDATION_ERROR_CODES = [
   'INVALID_CORRELATION_ID',
 ] as const;
 
+export const LEDGER_ACCOUNT_VALIDATION_ERROR_CODES = [
+  'INVALID_ACCOUNT_ID',
+  'INVALID_ACCOUNT_CODE',
+  'MISSING_OWNER_ID',
+  'INVALID_COUNTRY_CODE',
+  'INVALID_ACCOUNT_NAME',
+  'INVALID_CREATED_AT',
+] as const;
+
 export type LedgerAccountType = (typeof LEDGER_ACCOUNT_TYPES)[number];
 export type LedgerEntryDirection = (typeof LEDGER_ENTRY_DIRECTIONS)[number];
 export type LedgerTransactionStatus =
@@ -52,6 +61,8 @@ export type LedgerCommandValidationErrorCode =
   (typeof LEDGER_COMMAND_VALIDATION_ERROR_CODES)[number];
 export type LedgerReversalCommandValidationErrorCode =
   (typeof LEDGER_REVERSAL_COMMAND_VALIDATION_ERROR_CODES)[number];
+export type LedgerAccountValidationErrorCode =
+  (typeof LEDGER_ACCOUNT_VALIDATION_ERROR_CODES)[number];
 
 export interface LedgerAccount {
   readonly id: string;
@@ -155,6 +166,58 @@ export interface LedgerReversalCommandValidationError {
 export interface LedgerReversalCommandValidationResult {
   readonly valid: boolean;
   readonly errors: readonly LedgerReversalCommandValidationError[];
+}
+
+export interface LedgerAccountValidationError {
+  readonly code: LedgerAccountValidationErrorCode;
+  readonly message: string;
+}
+
+export interface LedgerAccountValidationResult {
+  readonly valid: boolean;
+  readonly errors: readonly LedgerAccountValidationError[];
+}
+
+export function validateLedgerAccount(
+  account: LedgerAccount,
+): LedgerAccountValidationResult {
+  const errors: LedgerAccountValidationError[] = [];
+
+  if (account.id.trim().length === 0) {
+    errors.push({ code: 'INVALID_ACCOUNT_ID', message: 'Account id is required.' });
+  }
+  if (!/^[A-Z0-9:_-]{3,64}$/.test(account.code)) {
+    errors.push({
+      code: 'INVALID_ACCOUNT_CODE',
+      message: 'Account code must contain 3 to 64 uppercase alphanumeric or :_- characters.',
+    });
+  }
+  if (account.ownerType !== 'PLATFORM' && !account.ownerId?.trim()) {
+    errors.push({
+      code: 'MISSING_OWNER_ID',
+      message: 'Owner id is required for non-platform ledger accounts.',
+    });
+  }
+  if (!/^[A-Z]{2}$/.test(account.countryCode)) {
+    errors.push({
+      code: 'INVALID_COUNTRY_CODE',
+      message: 'Country code must be an ISO 3166-1 alpha-2 code.',
+    });
+  }
+  if (account.name.trim().length === 0) {
+    errors.push({
+      code: 'INVALID_ACCOUNT_NAME',
+      message: 'Account name is required.',
+    });
+  }
+  if (Number.isNaN(Date.parse(account.createdAt))) {
+    errors.push({
+      code: 'INVALID_CREATED_AT',
+      message: 'Created-at must be a valid date-time.',
+    });
+  }
+
+  return { valid: errors.length === 0, errors };
 }
 
 export function validateLedgerEntries(
@@ -341,5 +404,13 @@ export function isLedgerReversalCommandValidationErrorCode(
 ): value is LedgerReversalCommandValidationErrorCode {
   return LEDGER_REVERSAL_COMMAND_VALIDATION_ERROR_CODES.includes(
     value as LedgerReversalCommandValidationErrorCode,
+  );
+}
+
+export function isLedgerAccountValidationErrorCode(
+  value: string,
+): value is LedgerAccountValidationErrorCode {
+  return LEDGER_ACCOUNT_VALIDATION_ERROR_CODES.includes(
+    value as LedgerAccountValidationErrorCode,
   );
 }
