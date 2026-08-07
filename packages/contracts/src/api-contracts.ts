@@ -11,6 +11,7 @@ export * from './subscription-api.js';
 export * from './merchant-api.js';
 export * from './terminal-api.js';
 export * from './public-services-api.js';
+export * from './public-agent-api.js';
 export * from './notification-api.js';
 export * from './support-api.js';
 export * from './beneficiary-api.js';
