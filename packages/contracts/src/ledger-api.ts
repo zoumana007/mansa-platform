@@ -113,3 +113,15 @@ export {
   type LedgerEntryCursorValidationResult,
   type LedgerEntryCursorVersion,
 } from './ledger-entry-cursor.js';
+
+export {
+  LEDGER_ENTRY_KEYSET_MATCH_ERROR_CODES,
+  compareLedgerEntryPositions,
+  isLedgerEntryAfterCursor,
+  isLedgerEntryKeysetMatchErrorCode,
+  validateLedgerEntryCursorAccount,
+  type LedgerEntryKeysetMatchError,
+  type LedgerEntryKeysetMatchErrorCode,
+  type LedgerEntryKeysetMatchResult,
+  type LedgerEntryPosition,
+} from './ledger-entry-keyset.js';
