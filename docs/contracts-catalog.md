@@ -65,6 +65,19 @@ Un fichier `*-api.ts` doit exposer au minimum :
 
 Les noms de paramètres de chemin utilisent la forme `:resourceId`. Les opérations qui peuvent être rejouées exigent une clé d'idempotence. Les listes utilisent une pagination par curseur ou une pagination explicitement normalisée.
 
+## Publication et points d'entrée
+
+Chaque contrat API stable doit être publié de deux façons cohérentes :
+
+- via `packages/contracts/src/api-contracts.ts`, qui constitue l'agrégat des contrats de transport ;
+- via un sous-chemin explicite dans `packages/contracts/package.json` lorsqu'un consommateur doit pouvoir importer le contrat directement.
+
+Exemple : un fichier `src/refund-api.ts` est accessible via l'agrégat `@mansa/contracts/api-contracts` et via le sous-chemin `@mansa/contracts/refund-api`.
+
+Lorsqu'un nouveau fichier `*-api.ts` est ajouté, la même modification doit vérifier l'agrégat et la table `exports`. Un contrat présent dans l'un mais absent de l'autre est considéré comme une divergence de publication et doit être corrigé avant recette.
+
+Les familles actuellement publiées couvrent notamment identité, KYC, ledger, wallet, paiements, transferts, cartes, épargne, budgets, abonnements, commerçants, terminaux, services publics, notifications, support, bénéficiaires, annuaire, fidélité, limites, commissions, commandes, inventaire, facturation, IA, gouvernance IA, analytics, administration, intégrations, réconciliation, règlements, remboursements, litiges, audit et webhooks.
+
 ## Compatibilité
 
 - Une modification additive est autorisée dans une version mineure.
@@ -75,7 +88,9 @@ Les noms de paramètres de chemin utilisent la forme `:resourceId`. Les opérati
 ## Checklist avant fusion
 
 - Le fichier est exporté par le point d'entrée approprié.
-- Le sous-chemin est déclaré dans `packages/contracts/package.json` lorsqu'un import ciblé est nécessaire.
+- Tout fichier `*-api.ts` stable est référencé par `api-contracts.ts`.
+- Le sous-chemin est déclaré dans `packages/contracts/package.json` lorsqu'un import ciblé est prévu.
+- L'agrégat et la table `exports` ne présentent aucune divergence connue.
 - Le typecheck du package réussit.
 - Les invariants déterministes possèdent des tests.
 - La documentation fonctionnelle correspondante existe dans `mansa-docs`.
