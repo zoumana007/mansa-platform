@@ -94,7 +94,10 @@ export function validateLedgerEntryPage(
       });
     }
 
-    if (entry.postedAt.trim().length === 0 || Number.isNaN(Date.parse(entry.postedAt))) {
+    if (
+      entry.postedAt.trim().length === 0 ||
+      Number.isNaN(Date.parse(entry.postedAt))
+    ) {
       errors.push({
         code: 'INVALID_POSTED_AT',
         message: 'Ledger entry posted-at must be a valid date-time.',
