@@ -2,10 +2,14 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  buildTraceParent,
   classifyHealth,
   isAllowedMetricLabel,
   isValidMetricDefinition,
+  isValidSpanRecord,
   isValidStructuredLogEvent,
+  isValidTraceContext,
+  parseTraceParent,
   redactLogAttributes,
   sanitizeStructuredLogEvent,
 } from '../dist/index.js';
@@ -80,6 +84,72 @@ test('isValidStructuredLogEvent impose timestamp, service et corrélation', () =
       event: 'wallet.read',
       message: 'Wallet read',
       correlation: { correlationId: '' },
+    }),
+    false,
+  );
+});
+
+test('trace context valide les identifiants W3C et refuse les valeurs nulles', () => {
+  assert.equal(
+    isValidTraceContext({
+      traceId: '4bf92f3577b34da6a3ce929d0e0e4736',
+      spanId: '00f067aa0ba902b7',
+      traceFlags: '01',
+    }),
+    true,
+  );
+
+  assert.equal(
+    isValidTraceContext({
+      traceId: '00000000000000000000000000000000',
+      spanId: '00f067aa0ba902b7',
+      traceFlags: '01',
+    }),
+    false,
+  );
+});
+
+test('buildTraceParent et parseTraceParent conservent le contexte', () => {
+  const context = {
+    traceId: '4bf92f3577b34da6a3ce929d0e0e4736',
+    spanId: '00f067aa0ba902b7',
+    traceFlags: '01',
+  };
+
+  const traceParent = buildTraceParent(context);
+  assert.equal(traceParent, '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01');
+  assert.deepEqual(parseTraceParent(traceParent), context);
+  assert.equal(parseTraceParent('00-invalid'), undefined);
+});
+
+test('isValidSpanRecord valide chronologie et parent', () => {
+  const base = {
+    name: 'payment.authorize',
+    service: 'payments-api',
+    kind: 'SERVER',
+    status: 'OK',
+    startedAt: '2026-08-07T10:00:00.000Z',
+    endedAt: '2026-08-07T10:00:00.125Z',
+    trace: {
+      traceId: '4bf92f3577b34da6a3ce929d0e0e4736',
+      spanId: '00f067aa0ba902b7',
+      traceFlags: '01',
+    },
+    parentSpanId: 'b7ad6b7169203331',
+  };
+
+  assert.equal(isValidSpanRecord(base), true);
+  assert.equal(
+    isValidSpanRecord({
+      ...base,
+      endedAt: '2026-08-07T09:59:59.000Z',
+    }),
+    false,
+  );
+  assert.equal(
+    isValidSpanRecord({
+      ...base,
+      parentSpanId: 'invalid',
     }),
     false,
   );
