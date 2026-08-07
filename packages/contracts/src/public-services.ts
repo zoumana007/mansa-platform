@@ -150,6 +150,30 @@ export interface CreatePublicObligationCommand {
   expiresAt?: string;
 }
 
+export interface IssuePublicObligationCommand {
+  idempotencyKey: IdempotencyKey;
+  obligationId: string;
+  issuingAgentId: string;
+  deviceId?: string;
+}
+
+export interface DisputePublicObligationCommand {
+  idempotencyKey: IdempotencyKey;
+  obligationId: string;
+  reason: string;
+  requestedByUserId?: string;
+  requestedByAgentId?: string;
+  evidenceReferenceIds?: readonly string[];
+}
+
+export interface CancelPublicObligationCommand {
+  idempotencyKey: IdempotencyKey;
+  obligationId: string;
+  reason: string;
+  requestedByAgentId: string;
+  approvalRequestId: string;
+}
+
 export interface CollectPublicPaymentCommand {
   idempotencyKey: IdempotencyKey;
   obligationId: string;
