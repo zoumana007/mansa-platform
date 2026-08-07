@@ -74,3 +74,12 @@ export const LEDGER_API_METHODS: Readonly<
   getBalance: 'GET',
   listEntries: 'GET',
 };
+
+export {
+  LEDGER_BALANCE_VALIDATION_ERROR_CODES,
+  isLedgerBalanceValidationErrorCode,
+  validateLedgerBalance,
+  type LedgerBalanceValidationError,
+  type LedgerBalanceValidationErrorCode,
+  type LedgerBalanceValidationResult,
+} from './ledger-balance.js';
