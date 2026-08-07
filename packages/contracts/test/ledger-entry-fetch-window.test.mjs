@@ -13,7 +13,7 @@ function entry(id, postedAt, accountId = 'account-0001') {
     accountId,
     sequence: 1,
     direction: 'CREDIT',
-    amount: { amount: '100', currency: 'XOF' },
+    amount: { amountMinor: 100n, currency: 'XOF' },
     postedAt,
   };
 }
