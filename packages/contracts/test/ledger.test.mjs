@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   isLedgerBalanced,
+  validateLedgerAccount,
   validateLedgerEntries,
   validatePostLedgerTransactionCommand,
   validateReverseLedgerTransactionCommand,
@@ -14,6 +15,19 @@ const balancedEntries = [
   { accountId: 'wallet:user', direction: 'DEBIT', amount: money(10_000n) },
   { accountId: 'cash:platform', direction: 'CREDIT', amount: money(10_000n) },
 ];
+
+const validAccount = {
+  id: 'account-0001',
+  code: 'WALLET:USER',
+  ownerType: 'USER',
+  ownerId: 'user-0001',
+  type: 'LIABILITY',
+  currency: 'XOF',
+  countryCode: 'ML',
+  name: 'User wallet',
+  isSystemAccount: false,
+  createdAt: '2026-08-07T12:00:00.000Z',
+};
 
 const validCommand = {
   reference: 'PAY-2026-0001',
@@ -32,6 +46,48 @@ const validReversalCommand = {
   idempotencyKey: 'idem-rev-0001',
   correlationId: 'corr-rev-0001',
 };
+
+test('accepts a valid ledger account', () => {
+  const result = validateLedgerAccount(validAccount);
+
+  assert.equal(result.valid, true);
+  assert.deepEqual(result.errors, []);
+});
+
+test('rejects malformed ledger account fields', () => {
+  const result = validateLedgerAccount({
+    ...validAccount,
+    id: ' ',
+    code: 'bad code',
+    ownerId: '',
+    countryCode: 'ml',
+    name: ' ',
+    createdAt: 'not-a-date',
+  });
+
+  assert.equal(result.valid, false);
+  for (const code of [
+    'INVALID_ACCOUNT_ID',
+    'INVALID_ACCOUNT_CODE',
+    'MISSING_OWNER_ID',
+    'INVALID_COUNTRY_CODE',
+    'INVALID_ACCOUNT_NAME',
+    'INVALID_CREATED_AT',
+  ]) {
+    assert.ok(result.errors.some((error) => error.code === code));
+  }
+});
+
+test('allows a platform account without owner id', () => {
+  const result = validateLedgerAccount({
+    ...validAccount,
+    ownerType: 'PLATFORM',
+    ownerId: undefined,
+    code: 'PLATFORM:CASH',
+  });
+
+  assert.equal(result.valid, true);
+});
 
 test('accepts a balanced double-entry transaction', () => {
   const result = validateLedgerEntries(balancedEntries);
