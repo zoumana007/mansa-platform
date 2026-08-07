@@ -92,3 +92,12 @@ export {
   type LedgerEntryQueryValidationErrorCode,
   type LedgerEntryQueryValidationResult,
 } from './ledger-entry-query.js';
+
+export {
+  LEDGER_ENTRY_PAGE_VALIDATION_ERROR_CODES,
+  isLedgerEntryPageValidationErrorCode,
+  validateLedgerEntryPage,
+  type LedgerEntryPageValidationError,
+  type LedgerEntryPageValidationErrorCode,
+  type LedgerEntryPageValidationResult,
+} from './ledger-entry-page.js';
