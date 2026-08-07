@@ -5,6 +5,7 @@ import {
   isLedgerBalanced,
   validateLedgerEntries,
   validatePostLedgerTransactionCommand,
+  validateReverseLedgerTransactionCommand,
 } from '../dist/ledger.js';
 
 const money = (amountMinor, currency = 'XOF') => ({ amountMinor, currency });
@@ -22,6 +23,14 @@ const validCommand = {
   correlationId: 'corr-0001',
   countryCode: 'ML',
   occurredAt: '2026-08-07T12:00:00.000Z',
+};
+
+const validReversalCommand = {
+  transactionId: 'txn-00000001',
+  reasonCode: 'CUSTOMER_REQUEST',
+  reason: 'Customer requested a reversal after duplicate payment.',
+  idempotencyKey: 'idem-rev-0001',
+  correlationId: 'corr-rev-0001',
 };
 
 test('accepts a balanced double-entry transaction', () => {
@@ -126,4 +135,33 @@ test('propagates invalid financial entries to command validation', () => {
   assert.equal(result.valid, false);
   assert.ok(result.errors.some((error) => error.code === 'INVALID_ENTRIES'));
   assert.ok(result.entries.errors.some((error) => error.code === 'UNBALANCED_TOTALS'));
+});
+
+test('accepts a complete reversal command', () => {
+  const result = validateReverseLedgerTransactionCommand(validReversalCommand);
+
+  assert.equal(result.valid, true);
+  assert.deepEqual(result.errors, []);
+});
+
+test('rejects malformed reversal command fields', () => {
+  const result = validateReverseLedgerTransactionCommand({
+    ...validReversalCommand,
+    transactionId: ' ',
+    reasonCode: '',
+    reason: ' ',
+    idempotencyKey: 'short',
+    correlationId: '',
+  });
+
+  assert.equal(result.valid, false);
+  for (const code of [
+    'INVALID_TRANSACTION_ID',
+    'INVALID_REASON_CODE',
+    'INVALID_REASON',
+    'INVALID_IDEMPOTENCY_KEY',
+    'INVALID_CORRELATION_ID',
+  ]) {
+    assert.ok(result.errors.some((error) => error.code === code));
+  }
 });
