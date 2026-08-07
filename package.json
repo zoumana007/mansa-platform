@@ -9,6 +9,7 @@
   },
   "scripts": {
     "build": "pnpm -r --if-present build",
+    "contracts:check": "node scripts/validate-contract-exports.mjs",
     "dev": "pnpm -r --parallel --if-present dev",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -16,7 +17,7 @@
     "registry:check": "node scripts/validate-product-registry.mjs",
     "test": "pnpm -r --if-present test",
     "typecheck": "pnpm -r --if-present typecheck",
-    "validate": "pnpm registry:check && pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+    "validate": "pnpm registry:check && pnpm contracts:check && pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
   },
   "devDependencies": {
     "prettier": "^3.6.2",
