@@ -125,3 +125,12 @@ export {
   type LedgerEntryKeysetMatchResult,
   type LedgerEntryPosition,
 } from './ledger-entry-keyset.js';
+
+export {
+  LEDGER_ENTRY_PAGE_ORDER_ERROR_CODES,
+  isLedgerEntryPageOrderErrorCode,
+  validateLedgerEntryPageOrder,
+  type LedgerEntryPageOrderError,
+  type LedgerEntryPageOrderErrorCode,
+  type LedgerEntryPageOrderValidationResult,
+} from './ledger-entry-page-order.js';
