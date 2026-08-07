@@ -4,7 +4,7 @@ export type LogLevel = (typeof LOG_LEVELS)[number];
 export const SERVICE_HEALTH_STATUSES = ['HEALTHY', 'DEGRADED', 'UNHEALTHY'] as const;
 export type ServiceHealthStatus = (typeof SERVICE_HEALTH_STATUSES)[number];
 
-export const INCIDENT_SEVERITIES = ['SEV1', 'SEV2', 'SEV3', 'SEV4'] as const;
+export const INCIDENT_SEVERITIES = ['P1', 'P2', 'P3', 'P4'] as const;
 export type IncidentSeverity = (typeof INCIDENT_SEVERITIES)[number];
 
 export interface CorrelationContext {
