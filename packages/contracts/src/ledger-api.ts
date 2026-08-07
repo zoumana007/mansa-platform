@@ -83,3 +83,12 @@ export {
   type LedgerBalanceValidationErrorCode,
   type LedgerBalanceValidationResult,
 } from './ledger-balance.js';
+
+export {
+  LEDGER_ENTRY_QUERY_VALIDATION_ERROR_CODES,
+  isLedgerEntryQueryValidationErrorCode,
+  validateListLedgerEntriesQuery,
+  type LedgerEntryQueryValidationError,
+  type LedgerEntryQueryValidationErrorCode,
+  type LedgerEntryQueryValidationResult,
+} from './ledger-entry-query.js';
