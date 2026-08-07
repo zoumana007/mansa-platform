@@ -34,6 +34,14 @@ export const LEDGER_COMMAND_VALIDATION_ERROR_CODES = [
   'INVALID_ENTRIES',
 ] as const;
 
+export const LEDGER_REVERSAL_COMMAND_VALIDATION_ERROR_CODES = [
+  'INVALID_TRANSACTION_ID',
+  'INVALID_REASON_CODE',
+  'INVALID_REASON',
+  'INVALID_IDEMPOTENCY_KEY',
+  'INVALID_CORRELATION_ID',
+] as const;
+
 export type LedgerAccountType = (typeof LEDGER_ACCOUNT_TYPES)[number];
 export type LedgerEntryDirection = (typeof LEDGER_ENTRY_DIRECTIONS)[number];
 export type LedgerTransactionStatus =
@@ -42,6 +50,8 @@ export type LedgerValidationErrorCode =
   (typeof LEDGER_VALIDATION_ERROR_CODES)[number];
 export type LedgerCommandValidationErrorCode =
   (typeof LEDGER_COMMAND_VALIDATION_ERROR_CODES)[number];
+export type LedgerReversalCommandValidationErrorCode =
+  (typeof LEDGER_REVERSAL_COMMAND_VALIDATION_ERROR_CODES)[number];
 
 export interface LedgerAccount {
   readonly id: string;
@@ -135,6 +145,16 @@ export interface LedgerCommandValidationResult {
   readonly valid: boolean;
   readonly errors: readonly LedgerCommandValidationError[];
   readonly entries: LedgerValidationResult;
+}
+
+export interface LedgerReversalCommandValidationError {
+  readonly code: LedgerReversalCommandValidationErrorCode;
+  readonly message: string;
+}
+
+export interface LedgerReversalCommandValidationResult {
+  readonly valid: boolean;
+  readonly errors: readonly LedgerReversalCommandValidationError[];
 }
 
 export function validateLedgerEntries(
@@ -241,6 +261,45 @@ export function validatePostLedgerTransactionCommand(
   return { valid: errors.length === 0, errors, entries };
 }
 
+export function validateReverseLedgerTransactionCommand(
+  command: ReverseLedgerTransactionCommand,
+): LedgerReversalCommandValidationResult {
+  const errors: LedgerReversalCommandValidationError[] = [];
+
+  if (command.transactionId.trim().length === 0) {
+    errors.push({
+      code: 'INVALID_TRANSACTION_ID',
+      message: 'Transaction id is required.',
+    });
+  }
+  if (command.reasonCode.trim().length === 0) {
+    errors.push({
+      code: 'INVALID_REASON_CODE',
+      message: 'Reversal reason code is required.',
+    });
+  }
+  if (command.reason.trim().length === 0) {
+    errors.push({
+      code: 'INVALID_REASON',
+      message: 'Reversal reason is required.',
+    });
+  }
+  if (command.idempotencyKey.trim().length < 8) {
+    errors.push({
+      code: 'INVALID_IDEMPOTENCY_KEY',
+      message: 'Idempotency key must contain at least 8 characters.',
+    });
+  }
+  if (command.correlationId.trim().length === 0) {
+    errors.push({
+      code: 'INVALID_CORRELATION_ID',
+      message: 'Correlation id is required.',
+    });
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
 export function isLedgerBalanced(entries: readonly LedgerEntryDraft[]): boolean {
   return validateLedgerEntries(entries).valid;
 }
@@ -274,5 +333,13 @@ export function isLedgerCommandValidationErrorCode(
 ): value is LedgerCommandValidationErrorCode {
   return LEDGER_COMMAND_VALIDATION_ERROR_CODES.includes(
     value as LedgerCommandValidationErrorCode,
+  );
+}
+
+export function isLedgerReversalCommandValidationErrorCode(
+  value: string,
+): value is LedgerReversalCommandValidationErrorCode {
+  return LEDGER_REVERSAL_COMMAND_VALIDATION_ERROR_CODES.includes(
+    value as LedgerReversalCommandValidationErrorCode,
   );
 }
