@@ -66,7 +66,7 @@ export class LedgerController {
     return this.ledgerWriteService.post(validation.value);
   }
 
-  @Post('transactions/:transactionId/reversal')
+  @Post('transactions/:transactionId/reverse')
   public async reverseTransaction(
     @Param('transactionId', new ParseUUIDPipe({ version: '4' })) transactionId: string,
     @Body() body: unknown,
