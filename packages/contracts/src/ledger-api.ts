@@ -144,3 +144,12 @@ export {
   type LedgerEntryNextCursorErrorCode,
   type LedgerEntryNextCursorResult,
 } from './ledger-entry-next-cursor.js';
+
+export {
+  LEDGER_ENTRY_FETCH_WINDOW_ERROR_CODES,
+  createLedgerEntryFetchWindow,
+  isLedgerEntryFetchWindowErrorCode,
+  type LedgerEntryFetchWindowError,
+  type LedgerEntryFetchWindowErrorCode,
+  type LedgerEntryFetchWindowResult,
+} from './ledger-entry-fetch-window.js';
