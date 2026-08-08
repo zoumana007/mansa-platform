@@ -6,8 +6,10 @@ import {
   Param,
   ParseUUIDPipe,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 
+import { InternalServiceGuard } from './internal-service.guard';
 import { LedgerReadService } from './ledger-read.service';
 
 const parseDate = (value: string | undefined, field: string): Date | undefined => {
@@ -38,6 +40,7 @@ const parseLimit = (value: string | undefined): number => {
   return limit;
 };
 
+@UseGuards(InternalServiceGuard)
 @Controller({ path: 'internal/ledger', version: '1' })
 export class LedgerController {
   public constructor(private readonly ledgerReadService: LedgerReadService) {}
