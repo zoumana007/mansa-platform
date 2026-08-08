@@ -4,8 +4,10 @@ import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { CorrelationInterceptor } from './correlation.interceptor';
 import { HealthController } from './health.controller';
 import { HttpExceptionFilter } from './http-exception.filter';
+import { LedgerModule } from './ledger.module';
 
 @Module({
+  imports: [LedgerModule],
   controllers: [HealthController],
   providers: [
     {
