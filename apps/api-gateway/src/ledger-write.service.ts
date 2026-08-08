@@ -70,6 +70,7 @@ const reversalFingerprint = (
       JSON.stringify({
         originalTransactionId,
         reasonCode: request.reasonCode,
+        reason: request.reason,
         idempotencyKey: request.idempotencyKey,
         correlationId: request.correlationId,
       }),
@@ -350,11 +351,15 @@ export class LedgerWriteService {
           correlationId: request.correlationId,
           countryCode: original.countryCode,
           status: 'POSTED',
-          description: `Reversal of ${original.reference}: ${request.reasonCode}`,
+          description: `Reversal of ${original.reference}: ${request.reason}`,
           occurredAt: postedAt,
           postedAt,
           reversalOfTransactionId: original.id,
-          metadata: { reasonCode: request.reasonCode, originalReference: original.reference },
+          metadata: {
+            reasonCode: request.reasonCode,
+            reason: request.reason,
+            originalReference: original.reference,
+          },
         },
         select: {
           id: true,
@@ -426,6 +431,7 @@ export class LedgerWriteService {
             reversalOfTransactionId: original.id,
             originalReference: original.reference,
             reasonCode: request.reasonCode,
+            reason: request.reason,
             correlationId: request.correlationId,
             countryCode: original.countryCode,
             postedAt: postedAt.toISOString(),
