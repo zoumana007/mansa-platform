@@ -110,15 +110,13 @@ model LedgerTransaction {
   occurredAt              DateTime
   postedAt                DateTime?
   reversedAt              DateTime?
-  reversedByTransactionId String?                 @unique @db.Uuid
   reversalOfTransactionId String?                 @unique @db.Uuid
   metadata                Json?
   createdAt               DateTime                @default(now())
   updatedAt               DateTime                @updatedAt
   entries                 LedgerEntry[]
-  reversedBy              LedgerTransaction?      @relation("LedgerReversal", fields: [reversedByTransactionId], references: [id], onDelete: Restrict)
   reversalOf              LedgerTransaction?      @relation("LedgerReversal", fields: [reversalOfTransactionId], references: [id], onDelete: Restrict)
-  reversalChildren        LedgerTransaction[]     @relation("LedgerReversal")
+  reversedBy              LedgerTransaction?      @relation("LedgerReversal")
   outboxEvents            OutboxEvent[]
 
   @@index([status, createdAt])
@@ -161,19 +159,19 @@ model LedgerBalanceProjection {
 }
 
 model OutboxEvent {
-  id            String            @id @default(uuid()) @db.Uuid
+  id            String             @id @default(uuid()) @db.Uuid
   aggregateType String
   aggregateId   String
   eventType     String
   payload       Json
-  status        OutboxEventStatus @default(PENDING)
-  attempts      Int               @default(0)
-  availableAt   DateTime          @default(now())
+  status        OutboxEventStatus  @default(PENDING)
+  attempts      Int                @default(0)
+  availableAt   DateTime           @default(now())
   publishedAt   DateTime?
   lastError     String?
-  transactionId String?           @db.Uuid
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
+  transactionId String?            @db.Uuid
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
   transaction   LedgerTransaction? @relation(fields: [transactionId], references: [id], onDelete: Restrict)
 
   @@index([status, availableAt])
