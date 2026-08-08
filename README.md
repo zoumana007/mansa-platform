@@ -69,6 +69,12 @@ Les invariants du ledger disposent de tests runtime dans `packages/contracts/tes
 
 La persistance PostgreSQL, la séquence globale, les verrous transactionnels, les projections de solde, l’outbox et les tests d’intégration doivent encore être ajoutés dans les modules backend avant toute utilisation réelle. La spécification fonctionnelle et le contrat d’intégration sont documentés dans `mansa-docs/volume-01-socle-technique/09-grand-livre-et-integrite-financiere.md` et `mansa-docs/volume-01-socle-technique/10-contrat-api-ledger.md`.
 
+## Accès, mobilité et cartes multiservices
+
+Le socle partagé expose désormais les contrats `@mansa/contracts/access-mobility` et `@mansa/contracts/access-mobility-api`. Ils séparent le moyen d’identification (`AccessCredential`) du droit métier (`AccessEntitlement`) et couvrent NFC, RFID UHF, QR, plaque et jeton d’appareil pour les cas d’usage péage, parking, transport public, campus, badge employé, flotte carburant, restauration et événementiel.
+
+Le moteur de décision reste indépendant du fabricant du lecteur ou de la barrière. Les périphériques physiques devront être intégrés par adaptateurs, tandis que les règles, limites, statuts, décisions et audits restent côté plateforme. La spécification fonctionnelle se trouve dans `mansa-docs/volume-06-module-etat/05-acces-mobilite-cartes-multiservices.md`.
+
 ## Démarrage cible
 
 ```bash
