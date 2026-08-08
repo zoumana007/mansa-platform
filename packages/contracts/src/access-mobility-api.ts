@@ -3,6 +3,8 @@ import type {
   AccessDecision,
   AccessEntitlement,
   AccessRequest,
+  AccessServiceAvailability,
+  AccessTerminalDisplayState,
   RecordAccessUsageCommand,
 } from './access-mobility.js';
 
@@ -15,6 +17,9 @@ export const ACCESS_MOBILITY_API_ROUTES = {
   listEntitlements: '/v1/access/entitlements',
   evaluateAccess: '/v1/access/evaluate',
   recordUsage: '/v1/access/usages',
+  getServiceAvailability: '/v1/access/locations/:locationId/availability',
+  updateServiceAvailability: '/v1/access/locations/:locationId/availability',
+  getTerminalDisplayState: '/v1/access/terminals/:terminalId/display-state',
 } as const;
 
 export const ACCESS_MOBILITY_API_METHODS = {
@@ -26,6 +31,9 @@ export const ACCESS_MOBILITY_API_METHODS = {
   listEntitlements: 'GET',
   evaluateAccess: 'POST',
   recordUsage: 'POST',
+  getServiceAvailability: 'GET',
+  updateServiceAvailability: 'PUT',
+  getTerminalDisplayState: 'GET',
 } as const;
 
 export type AccessMobilityApiRouteName = keyof typeof ACCESS_MOBILITY_API_ROUTES;
@@ -60,6 +68,13 @@ export interface CreateAccessEntitlementCommand {
   readonly correlationId: string;
 }
 
+export interface UpdateAccessServiceAvailabilityCommand {
+  readonly availability: AccessServiceAvailability;
+  readonly reason: string;
+  readonly idempotencyKey: string;
+  readonly correlationId: string;
+}
+
 export interface AccessMobilityApiContract {
   readonly createCredential: {
     readonly request: CreateAccessCredentialCommand;
@@ -90,5 +105,15 @@ export interface AccessMobilityApiContract {
   readonly recordUsage: {
     readonly request: RecordAccessUsageCommand;
     readonly response: { readonly recorded: true };
+  };
+  readonly getServiceAvailability: {
+    readonly response: AccessServiceAvailability;
+  };
+  readonly updateServiceAvailability: {
+    readonly request: UpdateAccessServiceAvailabilityCommand;
+    readonly response: AccessServiceAvailability;
+  };
+  readonly getTerminalDisplayState: {
+    readonly response: AccessTerminalDisplayState;
   };
 }
