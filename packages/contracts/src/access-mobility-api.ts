@@ -1,10 +1,12 @@
 import type {
+  AccessCashValidationEvent,
   AccessCredential,
   AccessDecision,
   AccessEntitlement,
   AccessRequest,
   AccessServiceAvailability,
   AccessTerminalDisplayState,
+  AccessTerminalProfile,
   RecordAccessUsageCommand,
 } from './access-mobility.js';
 
@@ -19,7 +21,9 @@ export const ACCESS_MOBILITY_API_ROUTES = {
   recordUsage: '/v1/access/usages',
   getServiceAvailability: '/v1/access/locations/:locationId/availability',
   updateServiceAvailability: '/v1/access/locations/:locationId/availability',
+  getTerminalProfile: '/v1/access/terminals/:terminalId/profile',
   getTerminalDisplayState: '/v1/access/terminals/:terminalId/display-state',
+  recordCashValidation: '/v1/access/terminals/:terminalId/cash-validations',
 } as const;
 
 export const ACCESS_MOBILITY_API_METHODS = {
@@ -33,7 +37,9 @@ export const ACCESS_MOBILITY_API_METHODS = {
   recordUsage: 'POST',
   getServiceAvailability: 'GET',
   updateServiceAvailability: 'PUT',
+  getTerminalProfile: 'GET',
   getTerminalDisplayState: 'GET',
+  recordCashValidation: 'POST',
 } as const;
 
 export type AccessMobilityApiRouteName = keyof typeof ACCESS_MOBILITY_API_ROUTES;
@@ -71,6 +77,12 @@ export interface CreateAccessEntitlementCommand {
 export interface UpdateAccessServiceAvailabilityCommand {
   readonly availability: AccessServiceAvailability;
   readonly reason: string;
+  readonly idempotencyKey: string;
+  readonly correlationId: string;
+}
+
+export interface RecordAccessCashValidationCommand {
+  readonly event: AccessCashValidationEvent;
   readonly idempotencyKey: string;
   readonly correlationId: string;
 }
@@ -113,7 +125,14 @@ export interface AccessMobilityApiContract {
     readonly request: UpdateAccessServiceAvailabilityCommand;
     readonly response: AccessServiceAvailability;
   };
+  readonly getTerminalProfile: {
+    readonly response: AccessTerminalProfile;
+  };
   readonly getTerminalDisplayState: {
     readonly response: AccessTerminalDisplayState;
+  };
+  readonly recordCashValidation: {
+    readonly request: RecordAccessCashValidationCommand;
+    readonly response: { readonly recorded: true };
   };
 }
