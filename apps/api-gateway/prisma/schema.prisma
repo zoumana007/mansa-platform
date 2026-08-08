@@ -22,16 +22,30 @@ enum LedgerAccountType {
   EXPENSE
 }
 
+enum LedgerAccountOwnerType {
+  PLATFORM
+  USER
+  MERCHANT
+  PARTNER
+  PUBLIC_BODY
+}
+
 enum LedgerTransactionStatus {
   PENDING
   POSTED
   REVERSED
-  FAILED
+  REJECTED
 }
 
 enum LedgerEntryDirection {
   DEBIT
   CREDIT
+}
+
+enum OutboxEventStatus {
+  PENDING
+  PUBLISHED
+  FAILED
 }
 
 model User {
@@ -61,44 +75,108 @@ model Wallet {
 }
 
 model LedgerAccount {
-  id        String            @id @default(uuid()) @db.Uuid
-  walletId  String?           @db.Uuid
-  code      String            @unique
-  name      String
-  type      LedgerAccountType
-  currency  String            @db.Char(3)
-  createdAt DateTime          @default(now())
-  wallet    Wallet?           @relation(fields: [walletId], references: [id], onDelete: Restrict)
-  entries   LedgerEntry[]
+  id              String                 @id @default(uuid()) @db.Uuid
+  walletId        String?                @db.Uuid
+  code            String                 @unique
+  ownerType       LedgerAccountOwnerType
+  ownerId         String?
+  name            String
+  type            LedgerAccountType
+  currency        String                 @db.Char(3)
+  countryCode     String                 @db.Char(2)
+  isSystemAccount Boolean                @default(false)
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  wallet          Wallet?                @relation(fields: [walletId], references: [id], onDelete: Restrict)
+  entries         LedgerEntry[]
+  balance         LedgerBalanceProjection?
 
   @@index([walletId])
+  @@index([ownerType, ownerId])
+  @@index([countryCode, currency])
   @@index([type, currency])
 }
 
 model LedgerTransaction {
-  id             String                  @id @default(uuid()) @db.Uuid
-  reference      String                  @unique
-  idempotencyKey String?                 @unique
-  status         LedgerTransactionStatus @default(PENDING)
-  description    String?
-  postedAt       DateTime?
-  createdAt      DateTime                @default(now())
-  entries        LedgerEntry[]
+  id                      String                  @id @default(uuid()) @db.Uuid
+  reference               String                  @unique
+  transactionType         String
+  idempotencyKey          String                  @unique
+  requestFingerprint      String
+  correlationId           String
+  countryCode             String                  @db.Char(2)
+  status                  LedgerTransactionStatus @default(PENDING)
+  description             String?
+  occurredAt              DateTime
+  postedAt                DateTime?
+  reversedAt              DateTime?
+  reversedByTransactionId String?                 @unique @db.Uuid
+  reversalOfTransactionId String?                 @unique @db.Uuid
+  metadata                Json?
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+  entries                 LedgerEntry[]
+  reversedBy              LedgerTransaction?      @relation("LedgerReversal", fields: [reversedByTransactionId], references: [id], onDelete: Restrict)
+  reversalOf              LedgerTransaction?      @relation("LedgerReversal", fields: [reversalOfTransactionId], references: [id], onDelete: Restrict)
+  reversalChildren        LedgerTransaction[]     @relation("LedgerReversal")
+  outboxEvents            OutboxEvent[]
 
   @@index([status, createdAt])
+  @@index([correlationId])
+  @@index([countryCode, occurredAt])
+  @@index([transactionType, occurredAt])
 }
 
 model LedgerEntry {
   id            String               @id @default(uuid()) @db.Uuid
   transactionId String               @db.Uuid
   accountId     String               @db.Uuid
+  sequence      Int
   direction     LedgerEntryDirection
   amountMinor   BigInt
   currency      String               @db.Char(3)
+  description   String?
+  postedAt      DateTime
   createdAt     DateTime             @default(now())
   transaction   LedgerTransaction    @relation(fields: [transactionId], references: [id], onDelete: Restrict)
   account       LedgerAccount        @relation(fields: [accountId], references: [id], onDelete: Restrict)
 
+  @@unique([transactionId, sequence])
   @@index([transactionId])
-  @@index([accountId, createdAt])
+  @@index([accountId, postedAt, id])
+}
+
+model LedgerBalanceProjection {
+  accountId          String        @id @db.Uuid
+  availableMinor     BigInt        @default(0)
+  pendingMinor       BigInt        @default(0)
+  currency           String        @db.Char(3)
+  lastEntryPostedAt  DateTime?
+  lastEntryId        String?       @db.Uuid
+  projectionSequence BigInt        @default(0)
+  updatedAt          DateTime      @updatedAt
+  account            LedgerAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  @@index([updatedAt])
+}
+
+model OutboxEvent {
+  id            String            @id @default(uuid()) @db.Uuid
+  aggregateType String
+  aggregateId   String
+  eventType     String
+  payload       Json
+  status        OutboxEventStatus @default(PENDING)
+  attempts      Int               @default(0)
+  availableAt   DateTime          @default(now())
+  publishedAt   DateTime?
+  lastError     String?
+  transactionId String?           @db.Uuid
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  transaction   LedgerTransaction? @relation(fields: [transactionId], references: [id], onDelete: Restrict)
+
+  @@index([status, availableAt])
+  @@index([aggregateType, aggregateId])
+  @@index([transactionId])
 }
