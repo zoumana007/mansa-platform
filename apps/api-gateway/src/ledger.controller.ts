@@ -1,16 +1,20 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   Get,
   NotFoundException,
   Param,
   ParseUUIDPipe,
+  Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
 
 import { InternalServiceGuard } from './internal-service.guard';
 import { LedgerReadService } from './ledger-read.service';
+import { validateLedgerWriteRequest } from './ledger-write.validation';
+import { LedgerWriteService } from './ledger-write.service';
 
 const parseDate = (value: string | undefined, field: string): Date | undefined => {
   if (value === undefined) {
@@ -43,7 +47,23 @@ const parseLimit = (value: string | undefined): number => {
 @UseGuards(InternalServiceGuard)
 @Controller({ path: 'internal/ledger', version: '1' })
 export class LedgerController {
-  public constructor(private readonly ledgerReadService: LedgerReadService) {}
+  public constructor(
+    private readonly ledgerReadService: LedgerReadService,
+    private readonly ledgerWriteService: LedgerWriteService,
+  ) {}
+
+  @Post('transactions')
+  public async postTransaction(@Body() body: unknown) {
+    const validation = validateLedgerWriteRequest(body);
+    if (!validation.valid || validation.value === undefined) {
+      throw new BadRequestException({
+        message: 'Ledger write request is invalid.',
+        errors: validation.errors,
+      });
+    }
+
+    return this.ledgerWriteService.post(validation.value);
+  }
 
   @Get('accounts/:accountId')
   public async getAccount(
