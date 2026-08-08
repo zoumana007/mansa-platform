@@ -26,12 +26,30 @@ export interface LedgerBalanceView {
 export interface LedgerEntryView {
   readonly id: string;
   readonly transactionId: string;
+  readonly accountId: string;
   readonly sequence: number;
   readonly direction: string;
   readonly amountMinor: string;
   readonly currency: string;
   readonly description?: string;
   readonly postedAt: string;
+}
+
+export interface LedgerTransactionView {
+  readonly id: string;
+  readonly reference: string;
+  readonly transactionType: string;
+  readonly status: string;
+  readonly idempotencyKey: string;
+  readonly correlationId: string;
+  readonly countryCode: string;
+  readonly description?: string;
+  readonly occurredAt: string;
+  readonly postedAt: string | null;
+  readonly reversedAt: string | null;
+  readonly reversalOfTransactionId: string | null;
+  readonly reversedByTransactionId: string | null;
+  readonly entries: readonly LedgerEntryView[];
 }
 
 export interface LedgerEntryPage {
@@ -68,9 +86,87 @@ const decodeCursor = (cursor: string): DecodedCursor => {
   }
 };
 
+const mapEntry = (entry: {
+  readonly id: string;
+  readonly transactionId: string;
+  readonly accountId: string;
+  readonly sequence: number;
+  readonly direction: string;
+  readonly amountMinor: bigint;
+  readonly currency: string;
+  readonly description: string | null;
+  readonly postedAt: Date;
+}): LedgerEntryView => ({
+  id: entry.id,
+  transactionId: entry.transactionId,
+  accountId: entry.accountId,
+  sequence: entry.sequence,
+  direction: entry.direction,
+  amountMinor: entry.amountMinor.toString(),
+  currency: entry.currency,
+  ...(entry.description === null ? {} : { description: entry.description }),
+  postedAt: entry.postedAt.toISOString(),
+});
+
 @Injectable()
 export class LedgerReadService {
   public constructor(private readonly prisma: PrismaService) {}
+
+  public async getTransaction(transactionId: string): Promise<LedgerTransactionView | null> {
+    const transaction = await this.prisma.ledgerTransaction.findUnique({
+      where: { id: transactionId },
+      select: {
+        id: true,
+        reference: true,
+        transactionType: true,
+        status: true,
+        idempotencyKey: true,
+        correlationId: true,
+        countryCode: true,
+        description: true,
+        occurredAt: true,
+        postedAt: true,
+        reversedAt: true,
+        reversalOfTransactionId: true,
+        reversedBy: { select: { id: true } },
+        entries: {
+          orderBy: { sequence: 'asc' },
+          select: {
+            id: true,
+            transactionId: true,
+            accountId: true,
+            sequence: true,
+            direction: true,
+            amountMinor: true,
+            currency: true,
+            description: true,
+            postedAt: true,
+          },
+        },
+      },
+    });
+
+    if (transaction === null) {
+      return null;
+    }
+
+    return {
+      id: transaction.id,
+      reference: transaction.reference,
+      transactionType: transaction.transactionType,
+      status: transaction.status,
+      idempotencyKey: transaction.idempotencyKey,
+      correlationId: transaction.correlationId,
+      countryCode: transaction.countryCode,
+      ...(transaction.description === null ? {} : { description: transaction.description }),
+      occurredAt: transaction.occurredAt.toISOString(),
+      postedAt: transaction.postedAt?.toISOString() ?? null,
+      reversedAt: transaction.reversedAt?.toISOString() ?? null,
+      reversalOfTransactionId: transaction.reversalOfTransactionId,
+      reversedByTransactionId: transaction.reversedBy?.id ?? null,
+      entries: transaction.entries.map(mapEntry),
+    };
+  }
 
   public async getAccount(accountId: string): Promise<LedgerAccountView | null> {
     const account = await this.prisma.ledgerAccount.findUnique({
@@ -153,6 +249,7 @@ export class LedgerReadService {
       select: {
         id: true,
         transactionId: true,
+        accountId: true,
         sequence: true,
         direction: true,
         amountMinor: true,
@@ -167,16 +264,7 @@ export class LedgerReadService {
     const last = visible.at(-1);
 
     return {
-      items: visible.map((entry) => ({
-        id: entry.id,
-        transactionId: entry.transactionId,
-        sequence: entry.sequence,
-        direction: entry.direction,
-        amountMinor: entry.amountMinor.toString(),
-        currency: entry.currency,
-        ...(entry.description === null ? {} : { description: entry.description }),
-        postedAt: entry.postedAt.toISOString(),
-      })),
+      items: visible.map(mapEntry),
       nextCursor:
         hasMore && last !== undefined ? encodeCursor(last.postedAt, last.id) : null,
     };
