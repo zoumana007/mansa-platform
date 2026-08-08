@@ -67,7 +67,7 @@ Le contrat de transport interne est défini dans `packages/contracts/src/ledger-
 
 Les invariants du ledger disposent de tests runtime dans `packages/contracts/test/ledger.test.mjs`. Le script de test du package compile d’abord les contrats puis exécute `node --test`, afin que les tests puissent importer les fichiers JavaScript générés sans dépendre d’artefacts déjà présents dans le dépôt.
 
-La persistance PostgreSQL, la séquence globale, les verrous transactionnels, les projections de solde, l’outbox et les tests d’intégration doivent encore être ajoutés dans les modules backend avant toute utilisation réelle. La spécification fonctionnelle et le contrat d’intégration sont documentés dans `mansa-docs/volume-01-socle-technique/09-grand-livre-et-integrite-financiere.md` et `mansa-docs/volume-01-socle-technique/10-contrat-api-ledger.md`.
+Le backend contient désormais la persistance PostgreSQL de référence, les lectures compte/solde/écritures avec pagination keyset, la publication et la compensation atomiques, les protections de routes internes ainsi que le cycle de livraison outbox. L’outbox sait réclamer un lot avec bail, marquer les succès, replanifier les échecs et appliquer un backoff exponentiel borné avec jitter. Le processus périodique de transport, le broker définitif, la réconciliation complète et les validations PostgreSQL/concurrence restent à terminer avant toute utilisation réelle. La spécification fonctionnelle et le contrat d’intégration sont documentés dans `mansa-docs/volume-01-socle-technique/09-grand-livre-et-integrite-financiere.md` et `mansa-docs/volume-01-socle-technique/10-contrat-api-ledger.md`.
 
 ## Accès, mobilité et cartes multiservices
 
