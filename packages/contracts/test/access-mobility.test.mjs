@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  isAccessCashValidationResult,
   isAccessCredentialStatus,
   isAccessCredentialType,
   isAccessDecision,
@@ -12,8 +13,10 @@ import {
   isAccessMatchPolicy,
   isAccessOutageCompensationPolicy,
   isAccessPaymentMethod,
+  isAccessQrMode,
   isAccessRefundPolicy,
   isAccessServiceStatus,
+  isAccessTerminalHeightProfile,
   isAccessUseCase,
 } from '../dist/access-mobility.js';
 
@@ -45,6 +48,8 @@ test('recognizes service continuity and equipment states', () => {
   assert.equal(isAccessServiceStatus('MAINTENANCE'), true);
   assert.equal(isAccessEquipmentType('ANPR_CAMERA'), true);
   assert.equal(isAccessEquipmentType('CASH_ACCEPTOR'), true);
+  assert.equal(isAccessEquipmentType('CASH_RECYCLER'), true);
+  assert.equal(isAccessEquipmentType('INTERCOM'), true);
   assert.equal(isAccessEquipmentStatus('OFFLINE'), true);
   assert.equal(isAccessEquipmentStatus('BROKEN'), false);
 });
@@ -57,6 +62,17 @@ test('recognizes vehicle matching and payment policies', () => {
   assert.equal(isAccessPaymentMethod('CASH_COINS'), true);
   assert.equal(isAccessPaymentMethod('MANSA_QR'), true);
   assert.equal(isAccessPaymentMethod('CRYPTO'), false);
+});
+
+test('recognizes toll kiosk QR, height and cash validation capabilities', () => {
+  assert.equal(isAccessQrMode('TERMINAL_SCANS_CUSTOMER_QR'), true);
+  assert.equal(isAccessQrMode('CUSTOMER_SCANS_DYNAMIC_TERMINAL_QR'), true);
+  assert.equal(isAccessQrMode('STATIC_PUBLIC_QR'), false);
+  assert.equal(isAccessTerminalHeightProfile('DUAL_HEIGHT'), true);
+  assert.equal(isAccessTerminalHeightProfile('TRIPLE_HEIGHT'), false);
+  assert.equal(isAccessCashValidationResult('ACCEPTED'), true);
+  assert.equal(isAccessCashValidationResult('REJECTED_SUSPECT'), true);
+  assert.equal(isAccessCashValidationResult('COUNTERFEIT_CONFIRMED'), false);
 });
 
 test('recognizes refund and outage compensation policies', () => {
