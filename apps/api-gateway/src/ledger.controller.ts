@@ -65,6 +65,17 @@ export class LedgerController {
     return this.ledgerWriteService.post(validation.value);
   }
 
+  @Get('transactions/:transactionId')
+  public async getTransaction(
+    @Param('transactionId', new ParseUUIDPipe({ version: '4' })) transactionId: string,
+  ) {
+    const transaction = await this.ledgerReadService.getTransaction(transactionId);
+    if (transaction === null) {
+      throw new NotFoundException('Ledger transaction not found.');
+    }
+    return transaction;
+  }
+
   @Get('accounts/:accountId')
   public async getAccount(
     @Param('accountId', new ParseUUIDPipe({ version: '4' })) accountId: string,
