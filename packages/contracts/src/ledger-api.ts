@@ -163,3 +163,14 @@ export {
   type LedgerEntryReferenceAdapterErrorCode,
   type LedgerEntryReferenceAdapterResult,
 } from './ledger-entry-reference-adapter.js';
+
+export {
+  LEDGER_ENTRY_REPOSITORY_QUERY_ERROR_CODES,
+  isLedgerEntryRepositoryQueryErrorCode,
+  validateLedgerEntryRepositoryQuery,
+  type LedgerEntryRepository,
+  type LedgerEntryRepositoryQuery,
+  type LedgerEntryRepositoryQueryError,
+  type LedgerEntryRepositoryQueryErrorCode,
+  type LedgerEntryRepositoryQueryValidationResult,
+} from './ledger-entry-repository.js';
