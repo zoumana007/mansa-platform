@@ -35,6 +35,9 @@ export interface PostgresLedgerEntryRow {
 const isLedgerEntryDirection = (value: string): value is LedgerEntryDirection =>
   value === 'DEBIT' || value === 'CREDIT';
 
+const isCurrencyCode = (value: string): value is CurrencyCode =>
+  value === 'XOF' || value === 'EUR' || value === 'USD';
+
 const toIsoDateTime = (value: string | Date): string => {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) {
@@ -45,8 +48,8 @@ const toIsoDateTime = (value: string | Date): string => {
 };
 
 const toMoney = (row: PostgresLedgerEntryRow): Money => {
-  if (!/^[A-Z]{3}$/.test(row.currency)) {
-    throw new Error('Ledger repository returned an invalid currency.');
+  if (!isCurrencyCode(row.currency)) {
+    throw new Error('Ledger repository returned an unsupported currency.');
   }
 
   let amountMinor: bigint;
@@ -57,7 +60,7 @@ const toMoney = (row: PostgresLedgerEntryRow): Money => {
   }
 
   return {
-    currency: row.currency as CurrencyCode,
+    currency: row.currency,
     amountMinor,
   };
 };
