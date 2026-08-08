@@ -13,6 +13,7 @@ import {
 
 import { InternalServiceGuard } from './internal-service.guard';
 import { LedgerReadService } from './ledger-read.service';
+import { validateLedgerReversalRequest } from './ledger-reversal.validation';
 import { validateLedgerWriteRequest } from './ledger-write.validation';
 import { LedgerWriteService } from './ledger-write.service';
 
@@ -63,6 +64,22 @@ export class LedgerController {
     }
 
     return this.ledgerWriteService.post(validation.value);
+  }
+
+  @Post('transactions/:transactionId/reversal')
+  public async reverseTransaction(
+    @Param('transactionId', new ParseUUIDPipe({ version: '4' })) transactionId: string,
+    @Body() body: unknown,
+  ) {
+    const validation = validateLedgerReversalRequest(body);
+    if (!validation.valid || validation.value === undefined) {
+      throw new BadRequestException({
+        message: 'Ledger reversal request is invalid.',
+        errors: validation.errors,
+      });
+    }
+
+    return this.ledgerWriteService.reverse(transactionId, validation.value);
   }
 
   @Get('transactions/:transactionId')
