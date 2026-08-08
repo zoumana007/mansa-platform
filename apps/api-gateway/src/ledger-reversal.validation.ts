@@ -1,5 +1,6 @@
 export interface NormalizedLedgerReversalRequest {
   readonly reasonCode: string;
+  readonly reason: string;
   readonly idempotencyKey: string;
   readonly correlationId: string;
 }
@@ -27,6 +28,9 @@ export const validateLedgerReversalRequest = (
   if (!isNonEmptyString(body.reasonCode, 64)) {
     errors.push('reasonCode must be a non-empty string of at most 64 characters.');
   }
+  if (!isNonEmptyString(body.reason, 256)) {
+    errors.push('reason must be a non-empty string of at most 256 characters.');
+  }
   if (!isNonEmptyString(body.idempotencyKey, 128)) {
     errors.push('idempotencyKey must be a non-empty string of at most 128 characters.');
   }
@@ -43,6 +47,7 @@ export const validateLedgerReversalRequest = (
     errors: [],
     value: {
       reasonCode: (body.reasonCode as string).trim(),
+      reason: (body.reason as string).trim(),
       idempotencyKey: (body.idempotencyKey as string).trim(),
       correlationId: (body.correlationId as string).trim(),
     },
