@@ -7,9 +7,12 @@ import {
   ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
-import type { Request } from 'express';
 
 const HEADER_NAME = 'x-mansa-internal-token';
+
+type InternalRequest = {
+  readonly headers: Record<string, string | readonly string[] | undefined>;
+};
 
 const safeEquals = (received: string, expected: string): boolean => {
   const receivedBuffer = Buffer.from(received, 'utf8');
@@ -35,7 +38,7 @@ export class InternalServiceGuard implements CanActivate {
       throw new ServiceUnavailableException('Internal service authentication is not configured.');
     }
 
-    const request = context.switchToHttp().getRequest<Request>();
+    const request = context.switchToHttp().getRequest<InternalRequest>();
     const rawHeader = request.headers[HEADER_NAME];
     const received = Array.isArray(rawHeader) ? rawHeader[0] : rawHeader;
 
