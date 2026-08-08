@@ -74,6 +74,26 @@ export const ACCESS_PAYMENT_METHODS = [
   'SUBSCRIPTION',
 ] as const;
 
+export const ACCESS_QR_MODES = [
+  'TERMINAL_SCANS_CUSTOMER_QR',
+  'CUSTOMER_SCANS_DYNAMIC_TERMINAL_QR',
+] as const;
+
+export const ACCESS_TERMINAL_HEIGHT_PROFILES = [
+  'SINGLE_LOW',
+  'SINGLE_HIGH',
+  'DUAL_HEIGHT',
+] as const;
+
+export const ACCESS_CASH_VALIDATION_RESULTS = [
+  'ACCEPTED',
+  'REJECTED_UNKNOWN_DENOMINATION',
+  'REJECTED_SUSPECT',
+  'REJECTED_DAMAGED',
+  'REJECTED_DISABLED_DENOMINATION',
+  'REJECTED_CASHBOX_FULL',
+] as const;
+
 export const ACCESS_EQUIPMENT_TYPES = [
   'RFID_READER',
   'ANPR_CAMERA',
@@ -81,12 +101,15 @@ export const ACCESS_EQUIPMENT_TYPES = [
   'MOBILE_MONEY_GATEWAY',
   'CASH_ACCEPTOR',
   'COIN_ACCEPTOR',
+  'CASH_RECYCLER',
+  'COIN_RECYCLER',
   'QR_SCANNER',
   'BARRIER',
   'LANE_CONTROLLER',
   'VEHICLE_SENSOR',
   'RECEIPT_PRINTER',
   'DISPLAY',
+  'INTERCOM',
   'NETWORK',
 ] as const;
 
@@ -145,6 +168,9 @@ export type AccessEntitlementStatus = (typeof ACCESS_ENTITLEMENT_STATUSES)[numbe
 export type AccessServiceStatus = (typeof ACCESS_SERVICE_STATUSES)[number];
 export type AccessMatchPolicy = (typeof ACCESS_MATCH_POLICIES)[number];
 export type AccessPaymentMethod = (typeof ACCESS_PAYMENT_METHODS)[number];
+export type AccessQrMode = (typeof ACCESS_QR_MODES)[number];
+export type AccessTerminalHeightProfile = (typeof ACCESS_TERMINAL_HEIGHT_PROFILES)[number];
+export type AccessCashValidationResult = (typeof ACCESS_CASH_VALIDATION_RESULTS)[number];
 export type AccessEquipmentType = (typeof ACCESS_EQUIPMENT_TYPES)[number];
 export type AccessEquipmentStatus = (typeof ACCESS_EQUIPMENT_STATUSES)[number];
 export type AccessRefundPolicy = (typeof ACCESS_REFUND_POLICIES)[number];
@@ -207,12 +233,41 @@ export interface AccessServiceAvailability {
   readonly updatedBy: string;
 }
 
+export interface AccessTerminalProfile {
+  readonly terminalId: string;
+  readonly organizationId: string;
+  readonly locationId: string;
+  readonly laneId?: string;
+  readonly heightProfile: AccessTerminalHeightProfile;
+  readonly paymentMethods: readonly AccessPaymentMethod[];
+  readonly qrModes?: readonly AccessQrMode[];
+  readonly supportedCurrencies: readonly string[];
+  readonly acceptedBillDenominationsMinor?: readonly number[];
+  readonly acceptedCoinDenominationsMinor?: readonly number[];
+  readonly canGiveChange: boolean;
+  readonly receiptPrinter: boolean;
+  readonly intercom: boolean;
+}
+
+export interface AccessCashValidationEvent {
+  readonly eventId: string;
+  readonly terminalId: string;
+  readonly currency: string;
+  readonly denominationMinor?: number;
+  readonly result: AccessCashValidationResult;
+  readonly instrument: 'BILL' | 'COIN';
+  readonly occurredAt: string;
+  readonly correlationId: string;
+}
+
 export interface AccessTerminalDisplayState {
   readonly terminalId: string;
   readonly serviceStatus: AccessServiceStatus;
   readonly headlineKey: string;
   readonly instructionKey?: string;
+  readonly amountDue?: Money;
   readonly availablePaymentMethods: readonly AccessPaymentMethod[];
+  readonly qrMode?: AccessQrMode;
   readonly alternativeLocationId?: string;
   readonly expectedRecoveryAt?: string;
   readonly generatedAt: string;
@@ -294,6 +349,18 @@ export function isAccessMatchPolicy(value: string): value is AccessMatchPolicy {
 
 export function isAccessPaymentMethod(value: string): value is AccessPaymentMethod {
   return ACCESS_PAYMENT_METHODS.includes(value as AccessPaymentMethod);
+}
+
+export function isAccessQrMode(value: string): value is AccessQrMode {
+  return ACCESS_QR_MODES.includes(value as AccessQrMode);
+}
+
+export function isAccessTerminalHeightProfile(value: string): value is AccessTerminalHeightProfile {
+  return ACCESS_TERMINAL_HEIGHT_PROFILES.includes(value as AccessTerminalHeightProfile);
+}
+
+export function isAccessCashValidationResult(value: string): value is AccessCashValidationResult {
+  return ACCESS_CASH_VALIDATION_RESULTS.includes(value as AccessCashValidationResult);
 }
 
 export function isAccessEquipmentType(value: string): value is AccessEquipmentType {
