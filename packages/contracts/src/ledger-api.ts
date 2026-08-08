@@ -153,3 +153,13 @@ export {
   type LedgerEntryFetchWindowErrorCode,
   type LedgerEntryFetchWindowResult,
 } from './ledger-entry-fetch-window.js';
+
+export {
+  LEDGER_ENTRY_REFERENCE_ADAPTER_ERROR_CODES,
+  isLedgerEntryReferenceAdapterErrorCode,
+  listLedgerEntriesFromMemory,
+  type LedgerEntryCursorCodec,
+  type LedgerEntryReferenceAdapterError,
+  type LedgerEntryReferenceAdapterErrorCode,
+  type LedgerEntryReferenceAdapterResult,
+} from './ledger-entry-reference-adapter.js';
