@@ -83,6 +83,13 @@ export interface CashDenominationInventory {
   readonly lowThresholdCount?: number;
 }
 
+export interface CashDispenseLine {
+  readonly currency: string;
+  readonly denominationMinor: number;
+  readonly instrument: 'BILL' | 'COIN';
+  readonly count: number;
+}
+
 export interface KioskHardwareProfile {
   readonly kioskId: string;
   readonly organizationId: string;
@@ -126,18 +133,82 @@ export interface ChangeFeasibilityResult {
     | 'NO_CHANGE_REQUIRED'
     | 'CHANGE_AVAILABLE'
     | 'INSUFFICIENT_CHANGE'
+    | 'UNMAKEABLE_EXACT_CHANGE'
     | 'POLICY_DISALLOWS_CHANGE'
-    | 'INVALID_AMOUNT';
+    | 'INVALID_AMOUNT'
+    | 'INVALID_INVENTORY';
+  readonly dispensePlan: readonly CashDispenseLine[];
 }
 
-function inventoryAmount(
+function normalizeInventory(
   inventory: readonly CashDenominationInventory[],
   currency: string,
   instrument?: 'BILL' | 'COIN',
-): number {
-  return inventory
-    .filter((entry) => entry.currency === currency && (!instrument || entry.instrument === instrument))
-    .reduce((total, entry) => total + entry.denominationMinor * entry.availableCount, 0);
+): CashDenominationInventory[] | null {
+  const filtered: CashDenominationInventory[] = [];
+
+  for (const entry of inventory) {
+    if (
+      !Number.isInteger(entry.denominationMinor) ||
+      entry.denominationMinor <= 0 ||
+      !Number.isInteger(entry.availableCount) ||
+      entry.availableCount < 0
+    ) {
+      return null;
+    }
+
+    if (entry.currency === currency && (!instrument || entry.instrument === instrument)) {
+      filtered.push(entry);
+    }
+  }
+
+  return filtered.sort((left, right) => right.denominationMinor - left.denominationMinor);
+}
+
+function totalInventoryAmount(inventory: readonly CashDenominationInventory[]): number {
+  return inventory.reduce(
+    (total, entry) => total + entry.denominationMinor * entry.availableCount,
+    0,
+  );
+}
+
+function findExactDispensePlan(
+  inventory: readonly CashDenominationInventory[],
+  targetMinor: number,
+): CashDispenseLine[] | null {
+  const memo = new Set<string>();
+
+  function search(index: number, remaining: number): CashDispenseLine[] | null {
+    if (remaining === 0) return [];
+    if (index >= inventory.length || remaining < 0) return null;
+
+    const memoKey = `${index}:${remaining}`;
+    if (memo.has(memoKey)) return null;
+
+    const entry = inventory[index]!;
+    const maxCount = Math.min(entry.availableCount, Math.floor(remaining / entry.denominationMinor));
+
+    for (let count = maxCount; count >= 0; count -= 1) {
+      const next = search(index + 1, remaining - count * entry.denominationMinor);
+      if (next !== null) {
+        if (count === 0) return next;
+        return [
+          {
+            currency: entry.currency,
+            denominationMinor: entry.denominationMinor,
+            instrument: entry.instrument,
+            count,
+          },
+          ...next,
+        ];
+      }
+    }
+
+    memo.add(memoKey);
+    return null;
+  }
+
+  return search(0, targetMinor);
 }
 
 export function evaluateChangeFeasibility(request: ChangeFeasibilityRequest): ChangeFeasibilityResult {
@@ -146,22 +217,37 @@ export function evaluateChangeFeasibility(request: ChangeFeasibilityRequest): Ch
     !Number.isInteger(request.amountTenderedMinor) ||
     request.amountDueMinor < 0 ||
     request.amountTenderedMinor < 0 ||
-    request.amountTenderedMinor < request.amountDueMinor
+    request.amountTenderedMinor < request.amountDueMinor ||
+    request.currency.trim().length === 0
   ) {
-    return { canAcceptCash: false, changeDueMinor: 0, reason: 'INVALID_AMOUNT' };
+    return {
+      canAcceptCash: false,
+      changeDueMinor: 0,
+      reason: 'INVALID_AMOUNT',
+      dispensePlan: [],
+    };
   }
 
   const changeDueMinor = request.amountTenderedMinor - request.amountDueMinor;
   if (changeDueMinor === 0) {
-    return { canAcceptCash: true, changeDueMinor, reason: 'NO_CHANGE_REQUIRED' };
+    return {
+      canAcceptCash: true,
+      changeDueMinor,
+      reason: 'NO_CHANGE_REQUIRED',
+      dispensePlan: [],
+    };
   }
 
-  if (request.policy === 'EXACT_CHANGE_REQUIRED') {
-    return { canAcceptCash: false, changeDueMinor, reason: 'POLICY_DISALLOWS_CHANGE' };
-  }
-
-  if (request.policy === 'EXACT_PAYMENT_ONLY_FALLBACK') {
-    return { canAcceptCash: false, changeDueMinor, reason: 'POLICY_DISALLOWS_CHANGE' };
+  if (
+    request.policy === 'EXACT_CHANGE_REQUIRED' ||
+    request.policy === 'EXACT_PAYMENT_ONLY_FALLBACK'
+  ) {
+    return {
+      canAcceptCash: false,
+      changeDueMinor,
+      reason: 'POLICY_DISALLOWS_CHANGE',
+      dispensePlan: [],
+    };
   }
 
   const requiredInstrument =
@@ -171,12 +257,41 @@ export function evaluateChangeFeasibility(request: ChangeFeasibilityRequest): Ch
         ? 'BILL'
         : undefined;
 
-  const availableAmount = inventoryAmount(request.inventory, request.currency, requiredInstrument);
-  if (availableAmount < changeDueMinor) {
-    return { canAcceptCash: false, changeDueMinor, reason: 'INSUFFICIENT_CHANGE' };
+  const inventory = normalizeInventory(request.inventory, request.currency, requiredInstrument);
+  if (inventory === null) {
+    return {
+      canAcceptCash: false,
+      changeDueMinor,
+      reason: 'INVALID_INVENTORY',
+      dispensePlan: [],
+    };
   }
 
-  return { canAcceptCash: true, changeDueMinor, reason: 'CHANGE_AVAILABLE' };
+  if (totalInventoryAmount(inventory) < changeDueMinor) {
+    return {
+      canAcceptCash: false,
+      changeDueMinor,
+      reason: 'INSUFFICIENT_CHANGE',
+      dispensePlan: [],
+    };
+  }
+
+  const dispensePlan = findExactDispensePlan(inventory, changeDueMinor);
+  if (dispensePlan === null) {
+    return {
+      canAcceptCash: false,
+      changeDueMinor,
+      reason: 'UNMAKEABLE_EXACT_CHANGE',
+      dispensePlan: [],
+    };
+  }
+
+  return {
+    canAcceptCash: true,
+    changeDueMinor,
+    reason: 'CHANGE_AVAILABLE',
+    dispensePlan,
+  };
 }
 
 export function isKioskHardwareProtocol(value: string): value is KioskHardwareProtocol {
