@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 
+import { AccessModule } from './access/access.module';
 import { CorrelationInterceptor } from './correlation.interceptor';
 import { HealthController } from './health.controller';
 import { HttpExceptionFilter } from './http-exception.filter';
@@ -8,7 +9,7 @@ import { LedgerModule } from './ledger.module';
 import { ReconciliationModule } from './reconciliation/reconciliation.module';
 
 @Module({
-  imports: [LedgerModule, ReconciliationModule],
+  imports: [LedgerModule, ReconciliationModule, AccessModule],
   controllers: [HealthController],
   providers: [
     {
