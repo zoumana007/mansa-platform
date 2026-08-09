@@ -81,6 +81,56 @@ export class PrismaAccessRepository
 {
   public constructor(private readonly prisma: PrismaService) {}
 
+  public async getCredential(organizationId: string, credentialId: string): Promise<AccessCredential | undefined> {
+    const row = await this.prisma.accessCredentialRecord.findFirst({
+      where: { id: credentialId, organizationId },
+    });
+    return row ? credentialFromRow(row) : undefined;
+  }
+
+  public async listCredentials(
+    organizationId: string,
+    filters: { subjectId?: string; status?: string; credentialType?: string; limit?: number } = {},
+  ): Promise<readonly AccessCredential[]> {
+    const limit = Math.min(Math.max(filters.limit ?? 50, 1), 100);
+    const rows = await this.prisma.accessCredentialRecord.findMany({
+      where: {
+        organizationId,
+        ...(filters.subjectId ? { subjectId: filters.subjectId } : {}),
+        ...(filters.status ? { status: filters.status } : {}),
+        ...(filters.credentialType ? { credentialType: filters.credentialType } : {}),
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit,
+    });
+    return rows.map(credentialFromRow);
+  }
+
+  public async getEntitlement(organizationId: string, entitlementId: string): Promise<AccessEntitlement | undefined> {
+    const row = await this.prisma.accessEntitlementRecord.findFirst({
+      where: { id: entitlementId, organizationId },
+    });
+    return row ? entitlementFromRow(row) : undefined;
+  }
+
+  public async listEntitlements(
+    organizationId: string,
+    filters: { subjectId?: string; useCase?: string; status?: string; limit?: number } = {},
+  ): Promise<readonly AccessEntitlement[]> {
+    const limit = Math.min(Math.max(filters.limit ?? 50, 1), 100);
+    const rows = await this.prisma.accessEntitlementRecord.findMany({
+      where: {
+        organizationId,
+        ...(filters.subjectId ? { subjectId: filters.subjectId } : {}),
+        ...(filters.useCase ? { useCase: filters.useCase } : {}),
+        ...(filters.status ? { status: filters.status } : {}),
+      },
+      orderBy: [{ validFrom: 'desc' }, { id: 'desc' }],
+      take: limit,
+    });
+    return rows.map(entitlementFromRow);
+  }
+
   public async resolveCredential(request: AccessRequest): Promise<AccessCredential | undefined> {
     const row = await this.prisma.accessCredentialRecord.findFirst({
       where: {
