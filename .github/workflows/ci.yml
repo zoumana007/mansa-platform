@@ -17,9 +17,24 @@ jobs:
   validate:
     name: Validate monorepo
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       DATABASE_URL: postgresql://mansa:mansa@localhost:5432/mansa?schema=public
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: mansa
+          POSTGRES_USER: mansa
+          POSTGRES_PASSWORD: mansa
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U mansa -d mansa"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
       - name: Checkout
@@ -51,6 +66,9 @@ jobs:
       - name: Generate Prisma client
         run: pnpm --filter @mansa/api-gateway prisma:generate
 
+      - name: Apply database migrations
+        run: pnpm --filter @mansa/api-gateway exec prisma migrate deploy
+
       - name: Check formatting
         run: pnpm format:check
 
@@ -62,6 +80,9 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+      - name: Reconciliation PostgreSQL integration
+        run: pnpm --filter @mansa/api-gateway test:postgres
 
       - name: Build
         run: pnpm build
