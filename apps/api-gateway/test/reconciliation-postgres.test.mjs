@@ -15,12 +15,14 @@ if (!integrationEnabled || !databaseUrl) {
   const repository = new ReconciliationRepository(prisma);
   const providerId = `integration-provider-${Date.now()}`;
   const sourceFingerprint = `integration-source-${Date.now()}`;
+  const createdBatchIds = new Set();
   let createdBatchId;
 
   test.after(async () => {
-    if (createdBatchId) {
-      await prisma.reconciliationItem.deleteMany({ where: { batchId: createdBatchId } });
-      await prisma.reconciliationBatch.deleteMany({ where: { id: createdBatchId } });
+    if (createdBatchIds.size > 0) {
+      const ids = [...createdBatchIds];
+      await prisma.reconciliationItem.deleteMany({ where: { batchId: { in: ids } } });
+      await prisma.reconciliationBatch.deleteMany({ where: { id: { in: ids } } });
     }
     await prisma.$disconnect();
   });
@@ -59,6 +61,7 @@ if (!integrationEnabled || !databaseUrl) {
     });
 
     createdBatchId = result.batchId;
+    createdBatchIds.add(result.batchId);
     assert.equal(result.reused, false);
     assert.equal(result.status, 'COMPLETED_WITH_MISMATCHES');
     assert.equal(result.totalItems, 2);
@@ -102,6 +105,50 @@ if (!integrationEnabled || !databaseUrl) {
       where: { providerId, sourceFingerprint },
     });
     assert.equal(matchingBatches, 1);
+  });
+
+  test('concurrent reconciliation imports converge on one persisted batch', async () => {
+    const concurrentProviderId = `${providerId}-concurrent`;
+    const concurrentFingerprint = `${sourceFingerprint}-concurrent`;
+    const input = {
+      providerId: concurrentProviderId,
+      sourceFingerprint: concurrentFingerprint,
+      periodStart: new Date('2026-08-02T00:00:00.000Z'),
+      periodEnd: new Date('2026-08-02T23:59:59.000Z'),
+      items: [
+        {
+          internalReference: 'internal-concurrent',
+          providerReference: 'provider-concurrent',
+          internalAmountMinor: 5000n,
+          providerAmountMinor: 5000n,
+          currency: 'XOF',
+          internalStatus: 'SETTLED',
+          providerStatus: 'SETTLED',
+          status: 'MATCHED',
+        },
+      ],
+    };
+
+    const results = await Promise.all([
+      repository.importBatch(input),
+      repository.importBatch(input),
+      repository.importBatch(input),
+    ]);
+
+    const ids = new Set(results.map((result) => result.batchId));
+    assert.equal(ids.size, 1);
+    const [batchId] = ids;
+    createdBatchIds.add(batchId);
+    assert.equal(results.filter((result) => result.reused === false).length, 1);
+    assert.equal(results.filter((result) => result.reused === true).length, 2);
+
+    const matchingBatches = await prisma.reconciliationBatch.count({
+      where: { providerId: concurrentProviderId, sourceFingerprint: concurrentFingerprint },
+    });
+    assert.equal(matchingBatches, 1);
+
+    const persistedItems = await prisma.reconciliationItem.count({ where: { batchId } });
+    assert.equal(persistedItems, 1);
   });
 
   test('reconciliation list limits stay bounded against PostgreSQL', async () => {
