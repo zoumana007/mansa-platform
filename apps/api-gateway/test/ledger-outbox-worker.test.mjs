@@ -81,13 +81,22 @@ test('runs a batch with dispatch options but never overlaps two executions', asy
   assert.equal(second, null);
   assert.equal(calls, 1);
   assert.deepEqual(receivedOptions, { limit: 25, maxAttempts: 8, leaseMs: 20_000 });
+  assert.equal(worker.getSnapshot().skippedRuns, 1);
 
   release();
   assert.deepEqual(await first, successfulResult);
   assert.equal(worker.isRunning(), false);
+  const snapshot = worker.getSnapshot();
+  assert.equal(snapshot.completedRuns, 1);
+  assert.equal(snapshot.failedRuns, 0);
+  assert.deepEqual(snapshot.lastResult, successfulResult);
+  assert.equal(snapshot.lastError, null);
+  assert.ok(snapshot.lastStartedAt instanceof Date);
+  assert.ok(snapshot.lastCompletedAt instanceof Date);
+  assert.ok(snapshot.lastDurationMs >= 0);
 });
 
-test('releases the running lock after a dispatcher failure', async () => {
+test('records failures and clears the last error after recovery', async () => {
   let attempts = 0;
   const dispatcher = {
     async dispatchBatch() {
@@ -99,6 +108,14 @@ test('releases the running lock after a dispatcher failure', async () => {
   const worker = new LedgerOutboxWorker(dispatcher, { async publish() {} });
 
   await assert.rejects(worker.runOnce(), /temporary database error/);
+  let snapshot = worker.getSnapshot();
+  assert.equal(snapshot.failedRuns, 1);
+  assert.match(snapshot.lastError, /temporary database error/);
   assert.equal(worker.isRunning(), false);
+
   assert.deepEqual(await worker.runOnce(), successfulResult);
+  snapshot = worker.getSnapshot();
+  assert.equal(snapshot.completedRuns, 1);
+  assert.equal(snapshot.failedRuns, 1);
+  assert.equal(snapshot.lastError, null);
 });
