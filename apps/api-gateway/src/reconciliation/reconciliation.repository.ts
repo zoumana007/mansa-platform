@@ -61,6 +61,15 @@ function validateInput(input: CreateReconciliationBatchInput): void {
   }
 }
 
+function isUniqueConstraintError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { code?: unknown }).code === 'P2002'
+  );
+}
+
 @Injectable()
 export class ReconciliationRepository {
   public constructor(private readonly prisma: PrismaService) {}
@@ -176,7 +185,7 @@ export class ReconciliationRepository {
         };
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      if (isUniqueConstraintError(error)) {
         const concurrent = await this.findBatchBySource(providerId, sourceFingerprint);
         if (concurrent) return this.getImportSnapshot(concurrent.id, true);
       }
