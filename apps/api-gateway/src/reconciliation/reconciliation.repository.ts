@@ -1,3 +1,4 @@
+import { Injectable } from '@nestjs/common';
 import {
   Prisma,
   ReconciliationBatchStatus,
@@ -60,6 +61,7 @@ function validateInput(input: CreateReconciliationBatchInput): void {
   }
 }
 
+@Injectable()
 export class ReconciliationRepository {
   public constructor(private readonly prisma: PrismaService) {}
 
@@ -167,6 +169,18 @@ export class ReconciliationRepository {
         matchedItems: completed.matchedItems,
         mismatchedItems: completed.mismatchedItems,
       };
+    });
+  }
+
+  public async getBatch(batchId: string) {
+    return this.prisma.reconciliationBatch.findUnique({ where: { id: batchId } });
+  }
+
+  public async listBatches(take = 50) {
+    const boundedTake = Math.max(1, Math.min(take, 100));
+    return this.prisma.reconciliationBatch.findMany({
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: boundedTake,
     });
   }
 
