@@ -5,9 +5,10 @@ import { CorrelationInterceptor } from './correlation.interceptor';
 import { HealthController } from './health.controller';
 import { HttpExceptionFilter } from './http-exception.filter';
 import { LedgerModule } from './ledger.module';
+import { ReconciliationModule } from './reconciliation/reconciliation.module';
 
 @Module({
-  imports: [LedgerModule],
+  imports: [LedgerModule, ReconciliationModule],
   controllers: [HealthController],
   providers: [
     {
