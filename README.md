@@ -73,7 +73,9 @@ Le backend contient désormais la persistance PostgreSQL de référence, les lec
 
 Les contrats partagés `@mansa/contracts/reconciliation` et `@mansa/contracts/reconciliation-api` définissent les lots, items, motifs d’écart, résolution et routes de consultation. Le moteur de comparaison pur couvre déjà les transactions manquantes, doublons fournisseur, différences de devise, montant et statut ainsi que le résumé déterministe d’un lot.
 
-La persistance PostgreSQL de référence est maintenant engagée dans `apps/api-gateway/prisma/schema.prisma` avec `ReconciliationBatch` et `ReconciliationItem`, accompagnés d’une migration versionnée. Le schéma conserve l’empreinte de source pour l’idempotence d’import, les compteurs de lot, les snapshots comparés, le nombre d’occurrences fournisseur et une clé unique d’idempotence pour les résolutions. La prochaine tranche doit ajouter les repositories Prisma et une transaction d’import de lot avant de brancher un fournisseur de test.
+La persistance PostgreSQL de référence est engagée dans `apps/api-gateway/prisma/schema.prisma` avec `ReconciliationBatch` et `ReconciliationItem`, accompagnés d’une migration versionnée. Le repository `apps/api-gateway/src/reconciliation/reconciliation.repository.ts` fournit désormais la recherche idempotente par `(providerId, sourceFingerprint)`, la création transactionnelle d’un lot et de ses items, le calcul atomique des compteurs matérialisés et une lecture bornée des items. L’import exige une empreinte de source non vide, valide la fenêtre temporelle et les références minimales, normalise devise/statuts et réutilise le lot existant lorsqu’une source identique a déjà été traitée.
+
+La prochaine tranche doit brancher un adaptateur fournisseur de test sur ce repository, ajouter les tests de persistance/idempotence avec PostgreSQL et exposer les premières routes applicatives de consultation sans ouvrir d’accès public non authentifié.
 
 La spécification correspondante se trouve dans `mansa-docs/volume-08-donnees-analytics/10-moteur-rapprochement-financier.md`.
 
