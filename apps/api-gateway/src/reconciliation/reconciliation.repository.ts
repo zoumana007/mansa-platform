@@ -65,6 +65,20 @@ function validateInput(input: CreateReconciliationBatchInput): void {
 export class ReconciliationRepository {
   public constructor(private readonly prisma: PrismaService) {}
 
+  private async getImportSnapshot(batchId: string, reused: boolean): Promise<ReconciliationBatchImportResult> {
+    const snapshot = await this.prisma.reconciliationBatch.findUniqueOrThrow({
+      where: { id: batchId },
+      select: {
+        id: true,
+        status: true,
+        totalItems: true,
+        matchedItems: true,
+        mismatchedItems: true,
+      },
+    });
+    return { ...snapshot, batchId: snapshot.id, reused };
+  }
+
   public async findBatchBySource(
     providerId: string,
     sourceFingerprint: string,
@@ -85,20 +99,10 @@ export class ReconciliationRepository {
   ): Promise<ReconciliationBatchImportResult> {
     validateInput(input);
 
-    const existing = await this.findBatchBySource(input.providerId.trim(), input.sourceFingerprint.trim());
-    if (existing) {
-      const snapshot = await this.prisma.reconciliationBatch.findUniqueOrThrow({
-        where: { id: existing.id },
-        select: {
-          id: true,
-          status: true,
-          totalItems: true,
-          matchedItems: true,
-          mismatchedItems: true,
-        },
-      });
-      return { ...snapshot, batchId: snapshot.id, reused: true };
-    }
+    const providerId = input.providerId.trim();
+    const sourceFingerprint = input.sourceFingerprint.trim();
+    const existing = await this.findBatchBySource(providerId, sourceFingerprint);
+    if (existing) return this.getImportSnapshot(existing.id, true);
 
     const matchedItems = input.items.filter((item) => item.status === 'MATCHED').length;
     const mismatchedItems = input.items.filter(
@@ -107,69 +111,77 @@ export class ReconciliationRepository {
     const completedStatus: ReconciliationBatchStatus =
       mismatchedItems > 0 ? 'COMPLETED_WITH_MISMATCHES' : 'COMPLETED';
 
-    return this.prisma.$transaction(async (tx) => {
-      const batch = await tx.reconciliationBatch.create({
-        data: {
-          providerId: input.providerId.trim(),
-          ...(input.sourceFileReference ? { sourceFileReference: input.sourceFileReference.trim() } : {}),
-          sourceFingerprint: input.sourceFingerprint.trim(),
-          periodStart: input.periodStart,
-          periodEnd: input.periodEnd,
-          status: 'PROCESSING',
-          totalItems: input.items.length,
-          matchedItems: 0,
-          mismatchedItems: 0,
-          ...(input.metadata === undefined ? {} : { metadata: input.metadata }),
-          startedAt: new Date(),
-        },
-        select: { id: true },
-      });
-
-      if (input.items.length > 0) {
-        await tx.reconciliationItem.createMany({
-          data: input.items.map((item) => ({
-            batchId: batch.id,
-            ...(item.internalReference ? { internalReference: item.internalReference.trim() } : {}),
-            ...(item.providerReference ? { providerReference: item.providerReference.trim() } : {}),
-            ...(item.internalAmountMinor === undefined ? {} : { internalAmountMinor: item.internalAmountMinor }),
-            ...(item.providerAmountMinor === undefined ? {} : { providerAmountMinor: item.providerAmountMinor }),
-            currency: item.currency.trim().toUpperCase(),
-            ...(item.internalStatus ? { internalStatus: item.internalStatus.trim().toUpperCase() } : {}),
-            ...(item.providerStatus ? { providerStatus: item.providerStatus.trim().toUpperCase() } : {}),
-            providerOccurrenceCount: item.providerOccurrenceCount ?? 1,
-            status: item.status,
-            ...(item.mismatchReason === undefined ? {} : { mismatchReason: item.mismatchReason }),
-            ...(item.rawLineFingerprint ? { rawLineFingerprint: item.rawLineFingerprint.trim() } : {}),
-          })),
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const batch = await tx.reconciliationBatch.create({
+          data: {
+            providerId,
+            ...(input.sourceFileReference ? { sourceFileReference: input.sourceFileReference.trim() } : {}),
+            sourceFingerprint,
+            periodStart: input.periodStart,
+            periodEnd: input.periodEnd,
+            status: 'PROCESSING',
+            totalItems: input.items.length,
+            matchedItems: 0,
+            mismatchedItems: 0,
+            ...(input.metadata === undefined ? {} : { metadata: input.metadata }),
+            startedAt: new Date(),
+          },
+          select: { id: true },
         });
-      }
 
-      const completed = await tx.reconciliationBatch.update({
-        where: { id: batch.id },
-        data: {
-          status: completedStatus,
-          matchedItems,
-          mismatchedItems,
-          completedAt: new Date(),
-        },
-        select: {
-          id: true,
-          status: true,
-          totalItems: true,
-          matchedItems: true,
-          mismatchedItems: true,
-        },
+        if (input.items.length > 0) {
+          await tx.reconciliationItem.createMany({
+            data: input.items.map((item) => ({
+              batchId: batch.id,
+              ...(item.internalReference ? { internalReference: item.internalReference.trim() } : {}),
+              ...(item.providerReference ? { providerReference: item.providerReference.trim() } : {}),
+              ...(item.internalAmountMinor === undefined ? {} : { internalAmountMinor: item.internalAmountMinor }),
+              ...(item.providerAmountMinor === undefined ? {} : { providerAmountMinor: item.providerAmountMinor }),
+              currency: item.currency.trim().toUpperCase(),
+              ...(item.internalStatus ? { internalStatus: item.internalStatus.trim().toUpperCase() } : {}),
+              ...(item.providerStatus ? { providerStatus: item.providerStatus.trim().toUpperCase() } : {}),
+              providerOccurrenceCount: item.providerOccurrenceCount ?? 1,
+              status: item.status,
+              ...(item.mismatchReason === undefined ? {} : { mismatchReason: item.mismatchReason }),
+              ...(item.rawLineFingerprint ? { rawLineFingerprint: item.rawLineFingerprint.trim() } : {}),
+            })),
+          });
+        }
+
+        const completed = await tx.reconciliationBatch.update({
+          where: { id: batch.id },
+          data: {
+            status: completedStatus,
+            matchedItems,
+            mismatchedItems,
+            completedAt: new Date(),
+          },
+          select: {
+            id: true,
+            status: true,
+            totalItems: true,
+            matchedItems: true,
+            mismatchedItems: true,
+          },
+        });
+
+        return {
+          batchId: completed.id,
+          reused: false,
+          status: completed.status,
+          totalItems: completed.totalItems,
+          matchedItems: completed.matchedItems,
+          mismatchedItems: completed.mismatchedItems,
+        };
       });
-
-      return {
-        batchId: completed.id,
-        reused: false,
-        status: completed.status,
-        totalItems: completed.totalItems,
-        matchedItems: completed.matchedItems,
-        mismatchedItems: completed.mismatchedItems,
-      };
-    });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        const concurrent = await this.findBatchBySource(providerId, sourceFingerprint);
+        if (concurrent) return this.getImportSnapshot(concurrent.id, true);
+      }
+      throw error;
+    }
   }
 
   public async getBatch(batchId: string) {
