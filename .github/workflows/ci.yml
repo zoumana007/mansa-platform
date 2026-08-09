@@ -81,7 +81,7 @@ jobs:
       - name: Test
         run: pnpm test
 
-      - name: Reconciliation PostgreSQL integration
+      - name: PostgreSQL integration tests
         run: pnpm --filter @mansa/api-gateway test:postgres
 
       - name: Build
