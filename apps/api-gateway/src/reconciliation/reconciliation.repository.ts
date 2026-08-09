@@ -268,8 +268,10 @@ export class ReconciliationRepository {
     const last = data.at(-1);
     return {
       data,
-      hasNextPage,
-      ...(hasNextPage && last ? { nextCursor: encodeCursor(last.createdAt, last.id) } : {}),
+      page: {
+        hasNextPage,
+        ...(hasNextPage && last ? { nextCursor: encodeCursor(last.createdAt, last.id) } : {}),
+      },
     };
   }
 
@@ -296,8 +298,10 @@ export class ReconciliationRepository {
     const last = data.at(-1);
     return {
       data,
-      hasNextPage,
-      ...(hasNextPage && last ? { nextCursor: encodeCursor(last.createdAt, last.id) } : {}),
+      page: {
+        hasNextPage,
+        ...(hasNextPage && last ? { nextCursor: encodeCursor(last.createdAt, last.id) } : {}),
+      },
     };
   }
 
