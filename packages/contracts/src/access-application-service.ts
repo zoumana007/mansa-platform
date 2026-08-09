@@ -36,8 +36,8 @@ export interface AccessQuotaReservation {
 }
 
 export interface AccessDecisionJournal {
-  recordDecision(decision: AccessDecision): Promise<void>;
-  recordUsage(command: RecordAccessUsageCommand): Promise<void>;
+  recordDecision(request: AccessRequest, decision: AccessDecision): Promise<void>;
+  recordUsage(request: AccessRequest, command: RecordAccessUsageCommand): Promise<void>;
 }
 
 export interface AccessApplicationDependencies {
@@ -136,9 +136,9 @@ export async function processAccessRequest(
     }
   }
 
-  await journal.recordDecision(decision);
+  await journal.recordDecision(request, decision);
   if (decision.decision === 'ALLOW') {
-    await journal.recordUsage(usageCommand(request, decision));
+    await journal.recordUsage(request, usageCommand(request, decision));
   }
 
   return { decision, terminalProfile };
