@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   NotFoundException,
@@ -13,10 +14,10 @@ import { ReconciliationRepository } from './reconciliation.repository';
 
 function parseLimit(value: string | undefined, fallback: number, max: number): number {
   if (value === undefined) return fallback;
-  if (!/^\d+$/.test(value)) throw new Error('limit must be an integer');
+  if (!/^\d+$/.test(value)) throw new BadRequestException('limit must be an integer');
   const parsed = Number(value);
   if (!Number.isSafeInteger(parsed) || parsed < 1 || parsed > max) {
-    throw new Error(`limit must be between 1 and ${max}`);
+    throw new BadRequestException(`limit must be between 1 and ${max}`);
   }
   return parsed;
 }
