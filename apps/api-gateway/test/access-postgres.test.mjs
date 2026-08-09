@@ -19,12 +19,156 @@ if (!integrationEnabled || !databaseUrl) {
     await prisma.accessQuotaCounter.deleteMany();
     await prisma.accessUsageRecord.deleteMany();
     await prisma.accessDecisionRecord.deleteMany();
+    await prisma.accessEntitlementRecord.deleteMany();
+    await prisma.accessCredentialRecord.deleteMany();
   };
 
   test.beforeEach(cleanup);
   test.after(async () => {
     await cleanup();
     await prisma.$disconnect();
+  });
+
+  test('credential reads are isolated by organization and preserve safe metadata', async () => {
+    const sharedId = '11111111-1111-4111-8111-111111111111';
+    await prisma.accessCredentialRecord.create({
+      data: {
+        id: sharedId,
+        organizationId: 'org-read-a',
+        subjectType: 'VEHICLE',
+        subjectId: 'vehicle-a',
+        credentialType: 'RFID_UHF_TAG',
+        publicReference: 'tag-a',
+        status: 'ACTIVE',
+        metadata: { fleet: 'public', ignoredNumber: 7 },
+      },
+    });
+
+    const own = await repository.getCredential('org-read-a', sharedId);
+    const foreign = await repository.getCredential('org-read-b', sharedId);
+
+    assert.equal(own?.organizationId, 'org-read-a');
+    assert.equal(own?.publicReference, 'tag-a');
+    assert.deepEqual(own?.metadata, { fleet: 'public' });
+    assert.equal(foreign, undefined);
+  });
+
+  test('credential lists combine tenant filters and never leak another tenant', async () => {
+    await prisma.accessCredentialRecord.createMany({
+      data: [
+        {
+          id: '11111111-1111-4111-8111-111111111112',
+          organizationId: 'org-list-a',
+          subjectType: 'VEHICLE',
+          subjectId: 'vehicle-a',
+          credentialType: 'RFID_UHF_TAG',
+          publicReference: 'tag-a-active',
+          status: 'ACTIVE',
+        },
+        {
+          id: '11111111-1111-4111-8111-111111111113',
+          organizationId: 'org-list-a',
+          subjectType: 'VEHICLE',
+          subjectId: 'vehicle-a',
+          credentialType: 'QR_CODE',
+          publicReference: 'qr-a-suspended',
+          status: 'SUSPENDED',
+        },
+        {
+          id: '11111111-1111-4111-8111-111111111114',
+          organizationId: 'org-list-b',
+          subjectType: 'VEHICLE',
+          subjectId: 'vehicle-a',
+          credentialType: 'RFID_UHF_TAG',
+          publicReference: 'tag-b-active',
+          status: 'ACTIVE',
+        },
+      ],
+    });
+
+    const rows = await repository.listCredentials('org-list-a', {
+      subjectId: 'vehicle-a',
+      status: 'ACTIVE',
+      credentialType: 'RFID_UHF_TAG',
+      limit: 100,
+    });
+
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0]?.organizationId, 'org-list-a');
+    assert.equal(rows[0]?.publicReference, 'tag-a-active');
+  });
+
+  test('entitlement reads are tenant-scoped and reconstruct monetary limits', async () => {
+    const entitlementId = '22222222-2222-4222-8222-222222222221';
+    await prisma.accessEntitlementRecord.create({
+      data: {
+        id: entitlementId,
+        organizationId: 'org-ent-a',
+        subjectId: 'vehicle-ent',
+        useCase: 'TOLL',
+        status: 'ACTIVE',
+        validFrom: new Date('2026-08-01T00:00:00.000Z'),
+        allowedLocationIds: ['toll-a'],
+        allowedProductCodes: ['class-1'],
+        maxUsesPerPeriod: 20,
+        period: 'MONTH',
+        amountLimitMinor: 125000n,
+        amountLimitCurrency: 'XOF',
+        refundPolicy: 'CREDIT',
+        outageCompensationPolicy: 'PAUSE_AND_EXTEND',
+        metadata: { plan: 'monthly' },
+      },
+    });
+
+    const own = await repository.getEntitlement('org-ent-a', entitlementId);
+    const foreign = await repository.getEntitlement('org-ent-b', entitlementId);
+
+    assert.equal(own?.organizationId, 'org-ent-a');
+    assert.deepEqual(own?.amountLimit, { amountMinor: '125000', currency: 'XOF' });
+    assert.deepEqual(own?.allowedLocationIds, ['toll-a']);
+    assert.equal(foreign, undefined);
+  });
+
+  test('entitlement lists combine tenant, subject, use-case and status filters', async () => {
+    await prisma.accessEntitlementRecord.createMany({
+      data: [
+        {
+          id: '22222222-2222-4222-8222-222222222222',
+          organizationId: 'org-ent-list-a',
+          subjectId: 'subject-a',
+          useCase: 'TOLL',
+          status: 'ACTIVE',
+          validFrom: new Date('2026-08-01T00:00:00.000Z'),
+        },
+        {
+          id: '22222222-2222-4222-8222-222222222223',
+          organizationId: 'org-ent-list-a',
+          subjectId: 'subject-a',
+          useCase: 'PARKING',
+          status: 'ACTIVE',
+          validFrom: new Date('2026-08-02T00:00:00.000Z'),
+        },
+        {
+          id: '22222222-2222-4222-8222-222222222224',
+          organizationId: 'org-ent-list-b',
+          subjectId: 'subject-a',
+          useCase: 'TOLL',
+          status: 'ACTIVE',
+          validFrom: new Date('2026-08-03T00:00:00.000Z'),
+        },
+      ],
+    });
+
+    const rows = await repository.listEntitlements('org-ent-list-a', {
+      subjectId: 'subject-a',
+      useCase: 'TOLL',
+      status: 'ACTIVE',
+      limit: 50,
+    });
+
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0]?.organizationId, 'org-ent-list-a');
+    assert.equal(rows[0]?.useCase, 'TOLL');
   });
 
   test('two tenants may reuse the same requestId without collision', async () => {
