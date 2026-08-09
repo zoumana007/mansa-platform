@@ -74,22 +74,26 @@ export class LedgerOutboxOperationsController {
     const actorId = requireHeader(actorIdHeader, 'x-mansa-actor-id');
     const reason = requireHeader(reasonHeader, 'x-mansa-operation-reason', 1000);
     const threshold = parsePositiveInteger(maxAttempts, 'maxAttempts', 10, 1000);
-    const requeued = await this.outbox.requeueDeadLetter(eventId, { maxAttempts: threshold });
-
-    if (!requeued) {
-      throw new NotFoundException('Dead-letter outbox event not found or no longer eligible.');
-    }
-
-    await this.audit.record({
+    const auditRecord = {
       correlationId: request.correlationId ?? 'missing-correlation-id',
       actorId,
-      actorType: 'SERVICE_ACCOUNT',
+      actorType: 'SERVICE_ACCOUNT' as const,
       action: 'LEDGER_OUTBOX_DEAD_LETTER_REQUEUED',
       resourceType: 'OUTBOX_EVENT',
       resourceId: eventId,
       reason,
       metadata: { maxAttempts: threshold },
+    };
+
+    const requeued = await this.audit.requeueDeadLetterWithAudit({
+      eventId,
+      maxAttempts: threshold,
+      audit: auditRecord,
     });
+
+    if (!requeued) {
+      throw new NotFoundException('Dead-letter outbox event not found or no longer eligible.');
+    }
 
     return { eventId, requeued: true };
   }
