@@ -32,7 +32,7 @@ export class LedgerOutboxLifecycleService implements OnModuleInit, OnApplication
 
     this.worker = new LedgerOutboxWorker(this.dispatcher, this.publisherBinding.publisher, {
       intervalMs: config.ledgerOutboxWorker.intervalMs,
-      batchSize: config.ledgerOutboxWorker.batchSize,
+      limit: config.ledgerOutboxWorker.batchSize,
       leaseMs: config.ledgerOutboxWorker.leaseMs,
       maxAttempts: config.ledgerOutboxWorker.maxAttempts,
       baseRetryDelayMs: config.ledgerOutboxWorker.baseRetryDelayMs,
