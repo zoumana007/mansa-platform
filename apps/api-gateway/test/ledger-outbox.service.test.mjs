@@ -15,16 +15,18 @@ const candidate = {
   status: 'PENDING',
   attempts: 0,
   availableAt: new Date('2026-08-08T14:59:00.000Z'),
+  lastError: null,
   createdAt: new Date('2026-08-08T14:58:00.000Z'),
+  updatedAt: new Date('2026-08-08T14:59:30.000Z'),
 };
 
-const makeService = ({ claimCount = 1 } = {}) => {
+const makeService = ({ claimCount = 1, findManyResult = [candidate] } = {}) => {
   const calls = [];
   const prisma = {
     outboxEvent: {
       async findMany(args) {
         calls.push({ method: 'findMany', args });
-        return [candidate];
+        return findManyResult;
       },
       async updateMany(args) {
         calls.push({ method: 'updateMany', args });
@@ -59,6 +61,48 @@ test('skips an event when another worker wins the optimistic claim', async () =>
   const { service } = makeService({ claimCount: 0 });
   const claimed = await service.claimBatch({ now });
   assert.deepEqual(claimed, []);
+});
+
+test('lists exhausted failed events as operational dead letters without exposing payloads', async () => {
+  const deadLetter = {
+    ...candidate,
+    status: 'FAILED',
+    attempts: 10,
+    lastError: 'Error: broker unavailable',
+  };
+  const { service, calls } = makeService({ findManyResult: [deadLetter] });
+  const result = await service.listDeadLetters({ limit: 25, maxAttempts: 10 });
+
+  assert.equal(result.length, 1);
+  assert.equal(result[0].id, deadLetter.id);
+  assert.equal(result[0].lastError, 'Error: broker unavailable');
+  assert.equal('payload' in result[0], true);
+  assert.deepEqual(calls[0].args.where, {
+    status: 'FAILED',
+    attempts: { gte: 10 },
+  });
+  assert.equal(calls[0].args.take, 25);
+  assert.equal(calls[0].args.select.payload, undefined);
+});
+
+test('requeues only exhausted failed events and clears failure state', async () => {
+  const { service, calls } = makeService();
+  const requeued = await service.requeueDeadLetter(candidate.id, { maxAttempts: 10, now });
+
+  assert.equal(requeued, true);
+  const update = calls.at(-1).args;
+  assert.deepEqual(update.where, {
+    id: candidate.id,
+    status: 'FAILED',
+    attempts: { gte: 10 },
+  });
+  assert.deepEqual(update.data, {
+    status: 'PENDING',
+    attempts: 0,
+    availableAt: now,
+    publishedAt: null,
+    lastError: null,
+  });
 });
 
 test('marks delivery success as published', async () => {
