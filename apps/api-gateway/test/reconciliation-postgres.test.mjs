@@ -5,10 +5,11 @@ import { PrismaClient } from '@prisma/client';
 
 import { ReconciliationRepository } from '../dist/reconciliation/reconciliation.repository.js';
 
+const integrationEnabled = process.env.RUN_POSTGRES_TESTS === '1';
 const databaseUrl = process.env.DATABASE_URL;
 
-if (!databaseUrl) {
-  test('reconciliation postgres integration requires DATABASE_URL', { skip: true }, () => {});
+if (!integrationEnabled || !databaseUrl) {
+  test('reconciliation PostgreSQL integration is opt-in', { skip: true }, () => {});
 } else {
   const prisma = new PrismaClient();
   const repository = new ReconciliationRepository(prisma);
