@@ -99,7 +99,7 @@ export function createReconciliationItem(
     ...command,
     currency,
     status,
-    mismatchReason,
+    ...(mismatchReason === undefined ? {} : { mismatchReason }),
     updatedAt: command.createdAt,
   };
 }
@@ -190,13 +190,14 @@ export function compareReconciliationTransactions(
     throw new Error('at least one reconciliation transaction snapshot is required');
   }
   if (!internal) {
+    if (!provider) throw new Error('provider snapshot is required');
     return {
       status: 'MISMATCHED',
       mismatchReason: 'MISSING_INTERNAL_TRANSACTION',
-      providerReference: provider?.reference,
-      providerAmountMinor: provider?.amountMinor,
-      providerCurrency: provider?.currency,
-      providerStatus: provider?.status,
+      providerReference: provider.reference,
+      providerAmountMinor: provider.amountMinor,
+      providerCurrency: provider.currency,
+      providerStatus: provider.status,
     };
   }
   if (!provider) {
