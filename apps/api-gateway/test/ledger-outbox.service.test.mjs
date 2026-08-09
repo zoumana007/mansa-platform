@@ -63,7 +63,7 @@ test('skips an event when another worker wins the optimistic claim', async () =>
   assert.deepEqual(claimed, []);
 });
 
-test('lists exhausted failed events as operational dead letters without exposing payloads', async () => {
+test('lists exhausted failed events as operational dead letters without selecting payloads', async () => {
   const deadLetter = {
     ...candidate,
     status: 'FAILED',
@@ -76,7 +76,6 @@ test('lists exhausted failed events as operational dead letters without exposing
   assert.equal(result.length, 1);
   assert.equal(result[0].id, deadLetter.id);
   assert.equal(result[0].lastError, 'Error: broker unavailable');
-  assert.equal('payload' in result[0], true);
   assert.deepEqual(calls[0].args.where, {
     status: 'FAILED',
     attempts: { gte: 10 },
