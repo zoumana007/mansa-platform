@@ -33,6 +33,7 @@ function metadata(value: Prisma.JsonValue | null): Readonly<Record<string, strin
 }
 
 function credentialFromRow(row: Awaited<ReturnType<PrismaService['accessCredentialRecord']['findFirstOrThrow']>>): AccessCredential {
+  const parsedMetadata = metadata(row.metadata);
   return {
     id: row.id,
     organizationId: row.organizationId,
@@ -43,11 +44,14 @@ function credentialFromRow(row: Awaited<ReturnType<PrismaService['accessCredenti
     status: row.status as AccessCredential['status'],
     ...(row.validFrom ? { validFrom: row.validFrom.toISOString() } : {}),
     ...(row.validUntil ? { validUntil: row.validUntil.toISOString() } : {}),
-    ...(metadata(row.metadata) ? { metadata: metadata(row.metadata) } : {}),
+    ...(parsedMetadata ? { metadata: parsedMetadata } : {}),
   };
 }
 
 function entitlementFromRow(row: Awaited<ReturnType<PrismaService['accessEntitlementRecord']['findFirstOrThrow']>>): AccessEntitlement {
+  const allowedLocationIds = strings(row.allowedLocationIds);
+  const allowedProductCodes = strings(row.allowedProductCodes);
+  const parsedMetadata = metadata(row.metadata);
   return {
     id: row.id,
     organizationId: row.organizationId,
@@ -56,8 +60,8 @@ function entitlementFromRow(row: Awaited<ReturnType<PrismaService['accessEntitle
     status: row.status as AccessEntitlement['status'],
     validFrom: row.validFrom.toISOString(),
     ...(row.validUntil ? { validUntil: row.validUntil.toISOString() } : {}),
-    ...(strings(row.allowedLocationIds) ? { allowedLocationIds: strings(row.allowedLocationIds) } : {}),
-    ...(strings(row.allowedProductCodes) ? { allowedProductCodes: strings(row.allowedProductCodes) } : {}),
+    ...(allowedLocationIds ? { allowedLocationIds } : {}),
+    ...(allowedProductCodes ? { allowedProductCodes } : {}),
     ...(row.maxUsesPerPeriod === null ? {} : { maxUsesPerPeriod: row.maxUsesPerPeriod }),
     ...(row.period === null ? {} : { period: row.period as NonNullable<AccessEntitlement['period']> }),
     ...(row.amountLimitMinor === null || row.amountLimitCurrency === null
@@ -67,7 +71,7 @@ function entitlementFromRow(row: Awaited<ReturnType<PrismaService['accessEntitle
     ...(row.outageCompensationPolicy === null
       ? {}
       : { outageCompensationPolicy: row.outageCompensationPolicy as NonNullable<AccessEntitlement['outageCompensationPolicy']> }),
-    ...(metadata(row.metadata) ? { metadata: metadata(row.metadata) } : {}),
+    ...(parsedMetadata ? { metadata: parsedMetadata } : {}),
   };
 }
 
@@ -105,19 +109,29 @@ export class PrismaAccessRepository
 
   public async loadServiceAvailability(request: AccessRequest): Promise<AccessServiceAvailability | undefined> {
     const laneKey = request.terminalId
-      ? (await this.prisma.accessTerminalProfileRecord.findUnique({ where: { terminalId: request.terminalId }, select: { laneKey: true } }))?.laneKey ?? ''
+      ? (await this.prisma.accessTerminalProfileRecord.findUnique({
+          where: { terminalId: request.terminalId },
+          select: { laneKey: true },
+        }))?.laneKey ?? ''
       : '';
     const row = await this.prisma.accessServiceAvailabilityRecord.findUnique({
-      where: { organizationId_locationId_laneKey: { organizationId: request.organizationId, locationId: request.locationId, laneKey } },
+      where: {
+        organizationId_locationId_laneKey: {
+          organizationId: request.organizationId,
+          locationId: request.locationId,
+          laneKey,
+        },
+      },
     });
     if (!row) return undefined;
+    const availablePaymentMethods = strings(row.availablePaymentMethods) ?? [];
     return {
       organizationId: row.organizationId,
       locationId: row.locationId,
       ...(row.laneKey ? { laneId: row.laneKey } : {}),
       status: row.status as AccessServiceAvailability['status'],
       ...(row.matchPolicy ? { matchPolicy: row.matchPolicy as NonNullable<AccessServiceAvailability['matchPolicy']> } : {}),
-      availablePaymentMethods: (strings(row.availablePaymentMethods) ?? []) as AccessServiceAvailability['availablePaymentMethods'],
+      availablePaymentMethods: availablePaymentMethods as AccessServiceAvailability['availablePaymentMethods'],
       equipment: Array.isArray(row.equipment) ? (row.equipment as unknown as AccessServiceAvailability['equipment']) : [],
       effectiveFrom: row.effectiveFrom.toISOString(),
       ...(row.expectedRecoveryAt ? { expectedRecoveryAt: row.expectedRecoveryAt.toISOString() } : {}),
@@ -132,17 +146,21 @@ export class PrismaAccessRepository
     if (!request.terminalId) return undefined;
     const row = await this.prisma.accessTerminalProfileRecord.findUnique({ where: { terminalId: request.terminalId } });
     if (!row) return undefined;
+    const paymentMethods = strings(row.paymentMethods) ?? [];
+    const qrModes = strings(row.qrModes);
+    const billDenominations = numbers(row.acceptedBillDenominationsMinor);
+    const coinDenominations = numbers(row.acceptedCoinDenominationsMinor);
     return {
       terminalId: row.terminalId,
       organizationId: row.organizationId,
       locationId: row.locationId,
       ...(row.laneKey ? { laneId: row.laneKey } : {}),
       heightProfile: row.heightProfile as AccessTerminalProfile['heightProfile'],
-      paymentMethods: (strings(row.paymentMethods) ?? []) as AccessTerminalProfile['paymentMethods'],
-      ...(strings(row.qrModes) ? { qrModes: strings(row.qrModes) as AccessTerminalProfile['qrModes'] } : {}),
+      paymentMethods: paymentMethods as AccessTerminalProfile['paymentMethods'],
+      ...(qrModes ? { qrModes: qrModes as AccessTerminalProfile['qrModes'] } : {}),
       supportedCurrencies: strings(row.supportedCurrencies) ?? [],
-      ...(numbers(row.acceptedBillDenominationsMinor) ? { acceptedBillDenominationsMinor: numbers(row.acceptedBillDenominationsMinor) } : {}),
-      ...(numbers(row.acceptedCoinDenominationsMinor) ? { acceptedCoinDenominationsMinor: numbers(row.acceptedCoinDenominationsMinor) } : {}),
+      ...(billDenominations ? { acceptedBillDenominationsMinor: billDenominations } : {}),
+      ...(coinDenominations ? { acceptedCoinDenominationsMinor: coinDenominations } : {}),
       canGiveChange: row.canGiveChange,
       receiptPrinter: row.receiptPrinter,
       intercom: row.intercom,
@@ -164,62 +182,61 @@ export class PrismaAccessRepository
   public async reserve(command: Parameters<AccessQuotaReservation['reserve']>[0]): Promise<boolean> {
     const window = calculateAccessQuotaWindow(command.occurredAt, command.period);
     try {
-      return await this.prisma.$transaction(async (tx) => {
-        const existing = await tx.accessQuotaReservationRecord.findUnique({
-          where: {
-            organizationId_entitlementId_periodStart_requestId: {
-              organizationId: command.organizationId,
-              entitlementId: command.entitlementId,
-              periodStart: new Date(window.startInclusive),
-              requestId: command.requestId,
-            },
-          },
-        });
-        if (existing) return true;
-
-        await tx.accessQuotaCounter.upsert({
-          where: {
-            organizationId_entitlementId_periodStart: {
-              organizationId: command.organizationId,
-              entitlementId: command.entitlementId,
-              periodStart: new Date(window.startInclusive),
-            },
-          },
-          create: {
-            organizationId: command.organizationId,
-            entitlementId: command.entitlementId,
-            period: command.period,
-            periodStart: new Date(window.startInclusive),
-            periodEnd: new Date(window.endExclusive),
-            used: 0,
-            limit: command.maxUsesPerPeriod,
-          },
-          update: { limit: command.maxUsesPerPeriod, periodEnd: new Date(window.endExclusive) },
-        });
-
-        const updated = await tx.accessQuotaCounter.updateMany({
-          where: {
+      return await this.prisma.$transaction(
+        async (tx) => {
+          const key = {
             organizationId: command.organizationId,
             entitlementId: command.entitlementId,
             periodStart: new Date(window.startInclusive),
-            used: { lt: command.maxUsesPerPeriod },
-          },
-          data: { used: { increment: 1 } },
-        });
-        if (updated.count !== 1) return false;
-
-        await tx.accessQuotaReservationRecord.create({
-          data: {
-            organizationId: command.organizationId,
-            entitlementId: command.entitlementId,
             requestId: command.requestId,
-            periodStart: new Date(window.startInclusive),
-            periodEnd: new Date(window.endExclusive),
-            correlationId: command.correlationId,
-          },
-        });
-        return true;
-      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+          };
+          const existing = await tx.accessQuotaReservationRecord.findUnique({
+            where: { organizationId_entitlementId_periodStart_requestId: key },
+          });
+          if (existing) return true;
+
+          await tx.accessQuotaCounter.upsert({
+            where: {
+              organizationId_entitlementId_periodStart: {
+                organizationId: command.organizationId,
+                entitlementId: command.entitlementId,
+                periodStart: key.periodStart,
+              },
+            },
+            create: {
+              organizationId: command.organizationId,
+              entitlementId: command.entitlementId,
+              period: command.period,
+              periodStart: key.periodStart,
+              periodEnd: new Date(window.endExclusive),
+              used: 0,
+              limit: command.maxUsesPerPeriod,
+            },
+            update: { limit: command.maxUsesPerPeriod, periodEnd: new Date(window.endExclusive) },
+          });
+
+          const updated = await tx.accessQuotaCounter.updateMany({
+            where: {
+              organizationId: command.organizationId,
+              entitlementId: command.entitlementId,
+              periodStart: key.periodStart,
+              used: { lt: command.maxUsesPerPeriod },
+            },
+            data: { used: { increment: 1 } },
+          });
+          if (updated.count !== 1) return false;
+
+          await tx.accessQuotaReservationRecord.create({
+            data: {
+              ...key,
+              periodEnd: new Date(window.endExclusive),
+              correlationId: command.correlationId,
+            },
+          });
+          return true;
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && (error.code === 'P2002' || error.code === 'P2034')) {
         const replay = await this.prisma.accessQuotaReservationRecord.findUnique({
@@ -239,20 +256,44 @@ export class PrismaAccessRepository
     }
   }
 
-  public async recordDecision(decision: AccessDecision): Promise<void> {
+  public async recordDecision(request: AccessRequest, decision: AccessDecision): Promise<void> {
     await this.prisma.accessDecisionRecord.upsert({
-      where: { organizationId_requestId: { organizationId: await this.organizationForRequest(decision.requestId), requestId: decision.requestId } },
-      create: await this.decisionCreate(decision),
+      where: {
+        organizationId_requestId: {
+          organizationId: request.organizationId,
+          requestId: request.requestId,
+        },
+      },
+      create: {
+        organizationId: request.organizationId,
+        requestId: decision.requestId,
+        decision: decision.decision,
+        reason: decision.reason,
+        credentialId: decision.credentialId,
+        subjectId: decision.subjectId,
+        entitlementId: decision.entitlementId,
+        approvedAmountMinor: decision.approvedAmount ? BigInt(decision.approvedAmount.amountMinor) : null,
+        approvedAmountCurrency: decision.approvedAmount?.currency,
+        fallbackPaymentMethods: decision.fallbackPaymentMethods ? [...decision.fallbackPaymentMethods] : Prisma.JsonNull,
+        alternativeLocationId: decision.alternativeLocationId,
+        publicMessageKey: decision.publicMessageKey,
+        decidedAt: new Date(decision.decidedAt),
+        correlationId: decision.correlationId,
+      },
       update: {},
     });
   }
 
-  public async recordUsage(command: RecordAccessUsageCommand): Promise<void> {
-    const organizationId = await this.organizationForRequest(command.requestId);
+  public async recordUsage(request: AccessRequest, command: RecordAccessUsageCommand): Promise<void> {
     await this.prisma.accessUsageRecord.upsert({
-      where: { organizationId_requestId: { organizationId, requestId: command.requestId } },
+      where: {
+        organizationId_requestId: {
+          organizationId: request.organizationId,
+          requestId: command.requestId,
+        },
+      },
       create: {
-        organizationId,
+        organizationId: request.organizationId,
         requestId: command.requestId,
         decision: command.decision,
         credentialId: command.credentialId,
@@ -272,8 +313,11 @@ export class PrismaAccessRepository
   }
 
   public async findRecordedDecision(organizationId: string, requestId: string): Promise<AccessDecision | undefined> {
-    const row = await this.prisma.accessDecisionRecord.findUnique({ where: { organizationId_requestId: { organizationId, requestId } } });
+    const row = await this.prisma.accessDecisionRecord.findUnique({
+      where: { organizationId_requestId: { organizationId, requestId } },
+    });
     if (!row) return undefined;
+    const fallbackPaymentMethods = strings(row.fallbackPaymentMethods);
     return {
       requestId: row.requestId,
       decision: row.decision as AccessDecision['decision'],
@@ -284,44 +328,13 @@ export class PrismaAccessRepository
       ...(row.approvedAmountMinor !== null && row.approvedAmountCurrency
         ? { approvedAmount: { amountMinor: row.approvedAmountMinor.toString(), currency: row.approvedAmountCurrency } }
         : {}),
-      ...(strings(row.fallbackPaymentMethods) ? { fallbackPaymentMethods: strings(row.fallbackPaymentMethods) as AccessDecision['fallbackPaymentMethods'] } : {}),
+      ...(fallbackPaymentMethods
+        ? { fallbackPaymentMethods: fallbackPaymentMethods as AccessDecision['fallbackPaymentMethods'] }
+        : {}),
       ...(row.alternativeLocationId ? { alternativeLocationId: row.alternativeLocationId } : {}),
       ...(row.publicMessageKey ? { publicMessageKey: row.publicMessageKey } : {}),
       decidedAt: row.decidedAt.toISOString(),
       correlationId: row.correlationId,
-    };
-  }
-
-  private async organizationForRequest(requestId: string): Promise<string> {
-    const decision = await this.prisma.accessDecisionRecord.findFirst({ where: { requestId }, select: { organizationId: true } });
-    if (!decision) throw new Error('access decision organization cannot be resolved');
-    return decision.organizationId;
-  }
-
-  private async decisionCreate(decision: AccessDecision): Promise<Prisma.AccessDecisionRecordUncheckedCreateInput> {
-    const credential = decision.credentialId
-      ? await this.prisma.accessCredentialRecord.findUnique({ where: { id: decision.credentialId }, select: { organizationId: true } })
-      : null;
-    const entitlement = !credential && decision.entitlementId
-      ? await this.prisma.accessEntitlementRecord.findUnique({ where: { id: decision.entitlementId }, select: { organizationId: true } })
-      : null;
-    const organizationId = credential?.organizationId ?? entitlement?.organizationId;
-    if (!organizationId) throw new Error('access decision organization cannot be resolved');
-    return {
-      organizationId,
-      requestId: decision.requestId,
-      decision: decision.decision,
-      reason: decision.reason,
-      credentialId: decision.credentialId,
-      subjectId: decision.subjectId,
-      entitlementId: decision.entitlementId,
-      approvedAmountMinor: decision.approvedAmount ? BigInt(decision.approvedAmount.amountMinor) : null,
-      approvedAmountCurrency: decision.approvedAmount?.currency,
-      fallbackPaymentMethods: decision.fallbackPaymentMethods ? [...decision.fallbackPaymentMethods] : Prisma.JsonNull,
-      alternativeLocationId: decision.alternativeLocationId,
-      publicMessageKey: decision.publicMessageKey,
-      decidedAt: new Date(decision.decidedAt),
-      correlationId: decision.correlationId,
     };
   }
 }
