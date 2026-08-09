@@ -89,8 +89,8 @@ function fixtures({ reserve = true, usage = 0, terminalProfile = terminal } = {}
         },
       },
       journal: {
-        async recordDecision(decision) { decisions.push(decision); },
-        async recordUsage(command) { usages.push(command); },
+        async recordDecision(accessRequest, decision) { decisions.push({ accessRequest, decision }); },
+        async recordUsage(accessRequest, command) { usages.push({ accessRequest, command }); },
       },
     },
   };
@@ -105,8 +105,10 @@ test('orchestrates a valid access and records decision plus usage', async () => 
   assert.equal(state.reservations.length, 1);
   assert.equal(state.decisions.length, 1);
   assert.equal(state.usages.length, 1);
-  assert.equal(state.usages[0].requestId, 'req-42');
-  assert.equal(state.usages[0].correlationId, 'corr-42');
+  assert.equal(state.decisions[0].accessRequest.organizationId, 'org-1');
+  assert.equal(state.usages[0].accessRequest.organizationId, 'org-1');
+  assert.equal(state.usages[0].command.requestId, 'req-42');
+  assert.equal(state.usages[0].command.correlationId, 'corr-42');
 });
 
 test('turns a concurrent quota reservation failure into a deterministic denial', async () => {
