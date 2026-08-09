@@ -14,6 +14,8 @@ export const LEDGER_API_ROUTES = {
   getAccount: '/v1/internal/ledger/accounts/:accountId',
   getBalance: '/v1/internal/ledger/accounts/:accountId/balance',
   listEntries: '/v1/internal/ledger/accounts/:accountId/entries',
+  listOutboxDeadLetters: '/v1/internal/ledger/outbox/dead-letters',
+  requeueOutboxDeadLetter: '/v1/internal/ledger/outbox/dead-letters/:eventId/requeue',
 } as const;
 
 export type LedgerApiRouteName = keyof typeof LEDGER_API_ROUTES;
@@ -29,6 +31,34 @@ export interface ListLedgerEntriesQuery {
 export interface LedgerEntryPage {
   readonly items: readonly LedgerEntry[];
   readonly nextCursor?: string;
+}
+
+export interface LedgerOutboxDeadLetter {
+  readonly id: string;
+  readonly aggregateType: string;
+  readonly aggregateId: string;
+  readonly eventType: string;
+  readonly transactionId: string | null;
+  readonly attempts: number;
+  readonly availableAt: string;
+  readonly lastError: string | null;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface ListLedgerOutboxDeadLettersQuery {
+  readonly limit?: number;
+  readonly maxAttempts?: number;
+}
+
+export interface RequeueLedgerOutboxDeadLetterRequest {
+  readonly eventId: string;
+  readonly maxAttempts?: number;
+}
+
+export interface RequeueLedgerOutboxDeadLetterResponse {
+  readonly eventId: string;
+  readonly requeued: true;
 }
 
 export interface LedgerApiContract {
@@ -62,6 +92,16 @@ export interface LedgerApiContract {
     readonly request: ListLedgerEntriesQuery;
     readonly response: LedgerEntryPage;
   };
+  readonly listOutboxDeadLetters: {
+    readonly method: 'GET';
+    readonly request: ListLedgerOutboxDeadLettersQuery;
+    readonly response: readonly LedgerOutboxDeadLetter[];
+  };
+  readonly requeueOutboxDeadLetter: {
+    readonly method: 'POST';
+    readonly request: RequeueLedgerOutboxDeadLetterRequest;
+    readonly response: RequeueLedgerOutboxDeadLetterResponse;
+  };
 }
 
 export const LEDGER_API_METHODS: Readonly<
@@ -73,6 +113,8 @@ export const LEDGER_API_METHODS: Readonly<
   getAccount: 'GET',
   getBalance: 'GET',
   listEntries: 'GET',
+  listOutboxDeadLetters: 'GET',
+  requeueOutboxDeadLetter: 'POST',
 };
 
 export {
