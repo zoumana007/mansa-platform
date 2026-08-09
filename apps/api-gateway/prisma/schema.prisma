@@ -178,3 +178,21 @@ model OutboxEvent {
   @@index([aggregateType, aggregateId])
   @@index([transactionId])
 }
+
+model OperationalAuditLog {
+  id            String   @id @default(uuid()) @db.Uuid
+  correlationId String
+  actorId       String
+  actorType     String
+  action        String
+  resourceType  String
+  resourceId    String?
+  reason        String?
+  metadata      Json?
+  occurredAt    DateTime @default(now())
+
+  @@index([correlationId])
+  @@index([action, occurredAt])
+  @@index([resourceType, resourceId])
+  @@index([actorId, occurredAt])
+}
