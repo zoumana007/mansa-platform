@@ -2,6 +2,21 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  ACCESS_CASH_VALIDATION_RESULTS,
+  ACCESS_CREDENTIAL_STATUSES,
+  ACCESS_CREDENTIAL_TYPES,
+  ACCESS_DECISIONS,
+  ACCESS_ENTITLEMENT_STATUSES,
+  ACCESS_EQUIPMENT_STATUSES,
+  ACCESS_EQUIPMENT_TYPES,
+  ACCESS_MATCH_POLICIES,
+  ACCESS_OUTAGE_COMPENSATION_POLICIES,
+  ACCESS_PAYMENT_METHODS,
+  ACCESS_QR_MODES,
+  ACCESS_REFUND_POLICIES,
+  ACCESS_SERVICE_STATUSES,
+  ACCESS_TERMINAL_HEIGHT_PROFILES,
+  ACCESS_USE_CASES,
   isAccessCashValidationResult,
   isAccessCredentialStatus,
   isAccessCredentialType,
@@ -19,6 +34,10 @@ import {
   isAccessTerminalHeightProfile,
   isAccessUseCase,
 } from '../dist/access-mobility.js';
+import {
+  ACCESS_MOBILITY_API_METHODS,
+  ACCESS_MOBILITY_API_ROUTES,
+} from '../dist/access-mobility-api.js';
 
 test('recognizes supported access credential technologies', () => {
   assert.equal(isAccessCredentialType('NFC_CARD'), true);
@@ -81,4 +100,56 @@ test('recognizes refund and outage compensation policies', () => {
   assert.equal(isAccessOutageCompensationPolicy('PAUSE_AND_EXTEND'), true);
   assert.equal(isAccessOutageCompensationPolicy('NO_COMPENSATION'), true);
   assert.equal(isAccessOutageCompensationPolicy('UNDEFINED'), false);
+});
+
+test('all published enum values remain accepted by their runtime guards', () => {
+  const cases = [
+    [ACCESS_CREDENTIAL_TYPES, isAccessCredentialType],
+    [ACCESS_USE_CASES, isAccessUseCase],
+    [ACCESS_CREDENTIAL_STATUSES, isAccessCredentialStatus],
+    [ACCESS_ENTITLEMENT_STATUSES, isAccessEntitlementStatus],
+    [ACCESS_SERVICE_STATUSES, isAccessServiceStatus],
+    [ACCESS_MATCH_POLICIES, isAccessMatchPolicy],
+    [ACCESS_PAYMENT_METHODS, isAccessPaymentMethod],
+    [ACCESS_QR_MODES, isAccessQrMode],
+    [ACCESS_TERMINAL_HEIGHT_PROFILES, isAccessTerminalHeightProfile],
+    [ACCESS_CASH_VALIDATION_RESULTS, isAccessCashValidationResult],
+    [ACCESS_EQUIPMENT_TYPES, isAccessEquipmentType],
+    [ACCESS_EQUIPMENT_STATUSES, isAccessEquipmentStatus],
+    [ACCESS_REFUND_POLICIES, isAccessRefundPolicy],
+    [ACCESS_OUTAGE_COMPENSATION_POLICIES, isAccessOutageCompensationPolicy],
+    [ACCESS_DECISIONS, isAccessDecision],
+  ];
+
+  for (const [values, guard] of cases) {
+    for (const value of values) assert.equal(guard(value), true, value);
+    assert.equal(guard('__INVALID__'), false);
+  }
+});
+
+test('access-mobility route names and HTTP methods remain aligned', () => {
+  const routes = Object.keys(ACCESS_MOBILITY_API_ROUTES).sort();
+  const methods = Object.keys(ACCESS_MOBILITY_API_METHODS).sort();
+  assert.deepEqual(routes, methods);
+
+  for (const [name, route] of Object.entries(ACCESS_MOBILITY_API_ROUTES)) {
+    assert.match(route, /^\/v1\/access\//, `${name} must stay under /v1/access`);
+    assert.match(ACCESS_MOBILITY_API_METHODS[name], /^(GET|POST|PUT|PATCH|DELETE)$/);
+  }
+});
+
+test('critical toll-kiosk capabilities stay represented in the shared contract', () => {
+  assert.ok(ACCESS_USE_CASES.includes('TOLL'));
+  assert.ok(ACCESS_CREDENTIAL_TYPES.includes('RFID_UHF_TAG'));
+  assert.ok(ACCESS_CREDENTIAL_TYPES.includes('LICENSE_PLATE'));
+  assert.ok(ACCESS_PAYMENT_METHODS.includes('BANK_CARD'));
+  assert.ok(ACCESS_PAYMENT_METHODS.includes('MANSA_QR'));
+  assert.ok(ACCESS_PAYMENT_METHODS.includes('CASH_BILLS'));
+  assert.ok(ACCESS_PAYMENT_METHODS.includes('CASH_COINS'));
+  assert.ok(ACCESS_TERMINAL_HEIGHT_PROFILES.includes('DUAL_HEIGHT'));
+  assert.ok(ACCESS_EQUIPMENT_TYPES.includes('ANPR_CAMERA'));
+  assert.ok(ACCESS_EQUIPMENT_TYPES.includes('CASH_RECYCLER'));
+  assert.ok(ACCESS_EQUIPMENT_TYPES.includes('COIN_RECYCLER'));
+  assert.ok(ACCESS_EQUIPMENT_TYPES.includes('RECEIPT_PRINTER'));
+  assert.ok(ACCESS_EQUIPMENT_TYPES.includes('INTERCOM'));
 });
