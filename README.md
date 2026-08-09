@@ -73,11 +73,13 @@ Le backend contient désormais la persistance PostgreSQL de référence, les lec
 
 Les contrats partagés `@mansa/contracts/reconciliation` et `@mansa/contracts/reconciliation-api` définissent les lots, items, motifs d’écart, résolution et routes de consultation. Le moteur de comparaison pur couvre déjà les transactions manquantes, doublons fournisseur, différences de devise, montant et statut ainsi que le résumé déterministe d’un lot.
 
-La persistance PostgreSQL de référence est engagée dans `apps/api-gateway/prisma/schema.prisma` avec `ReconciliationBatch` et `ReconciliationItem`, accompagnés d’une migration versionnée. Le repository `apps/api-gateway/src/reconciliation/reconciliation.repository.ts` fournit désormais la recherche idempotente par `(providerId, sourceFingerprint)`, la création transactionnelle d’un lot et de ses items, le calcul atomique des compteurs matérialisés et une lecture bornée des items. L’import exige une empreinte de source non vide, valide la fenêtre temporelle et les références minimales, normalise devise/statuts et réutilise le lot existant lorsqu’une source identique a déjà été traitée.
+La persistance PostgreSQL de référence est engagée dans `apps/api-gateway/prisma/schema.prisma` avec `ReconciliationBatch` et `ReconciliationItem`, accompagnés d’une migration versionnée. Le repository `apps/api-gateway/src/reconciliation/reconciliation.repository.ts` fournit la recherche idempotente par `(providerId, sourceFingerprint)`, la création transactionnelle d’un lot et de ses items, le calcul atomique des compteurs matérialisés et des lectures bornées. L’import exige une empreinte de source non vide, valide la fenêtre temporelle et les références minimales, normalise devise/statuts et réutilise le lot existant lorsqu’une source identique a déjà été traitée.
 
-La prochaine tranche doit brancher un adaptateur fournisseur de test sur ce repository, ajouter les tests de persistance/idempotence avec PostgreSQL et exposer les premières routes applicatives de consultation sans ouvrir d’accès public non authentifié.
+L’adaptateur fournisseur de test déterministe et les premières routes internes protégées sont maintenant câblés dans l’API Gateway. La CI démarre également PostgreSQL, applique les migrations puis exécute un test d’intégration réel qui couvre persistance, normalisation, compteurs, idempotence séquentielle, idempotence concurrente et limites de lecture. En cas de course sur la contrainte unique `(providerId, sourceFingerprint)`, le repository transforme la collision concurrente en réutilisation du lot gagnant au lieu de laisser remonter un doublon ou une erreur métier.
 
-La spécification correspondante se trouve dans `mansa-docs/volume-08-donnees-analytics/10-moteur-rapprochement-financier.md`.
+La prochaine tranche doit ajouter les tests de contrat HTTP des routes internes, la pagination par curseur conforme au contrat partagé et la résolution manuelle atomique avec idempotence et audit opérationnel.
+
+Les spécifications correspondantes se trouvent dans `mansa-docs/volume-08-donnees-analytics/10-moteur-rapprochement-financier.md` et `mansa-docs/volume-08-donnees-analytics/11-validation-postgresql-rapprochement.md`.
 
 ## Accès, mobilité et cartes multiservices
 
