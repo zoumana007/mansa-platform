@@ -12,6 +12,7 @@ import {
 import { LedgerOutboxService } from './ledger-outbox.service';
 import { LedgerReadService } from './ledger-read.service';
 import { LedgerWriteService } from './ledger-write.service';
+import { OperationalAuditService } from './operational-audit.service';
 import { PrismaService } from './prisma.service';
 
 @Module({
@@ -23,6 +24,7 @@ import { PrismaService } from './prisma.service';
     LedgerOutboxService,
     LedgerOutboxDispatcherService,
     LedgerOutboxLifecycleService,
+    OperationalAuditService,
     InternalServiceGuard,
     {
       provide: LEDGER_OUTBOX_PUBLISHER,
