@@ -9,6 +9,11 @@ export interface OutboxClaimOptions {
   now?: Date;
 }
 
+export interface OutboxDeadLetterOptions {
+  limit?: number;
+  maxAttempts?: number;
+}
+
 export interface ClaimedOutboxEvent {
   id: string;
   aggregateType: string;
@@ -19,6 +24,19 @@ export interface ClaimedOutboxEvent {
   attempts: number;
   availableAt: Date;
   createdAt: Date;
+}
+
+export interface DeadLetterOutboxEvent {
+  id: string;
+  aggregateType: string;
+  aggregateId: string;
+  eventType: string;
+  transactionId: string | null;
+  attempts: number;
+  availableAt: Date;
+  lastError: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const DEFAULT_LIMIT = 50;
@@ -108,6 +126,64 @@ export class LedgerOutboxService {
     }
 
     return claimed;
+  }
+
+  public async listDeadLetters(
+    options: OutboxDeadLetterOptions = {},
+  ): Promise<DeadLetterOutboxEvent[]> {
+    const limit = normalizePositiveInteger(options.limit ?? DEFAULT_LIMIT, DEFAULT_LIMIT, MAX_LIMIT);
+    const maxAttempts = normalizePositiveInteger(
+      options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS,
+      DEFAULT_MAX_ATTEMPTS,
+    );
+
+    return this.prisma.outboxEvent.findMany({
+      where: {
+        status: 'FAILED',
+        attempts: { gte: maxAttempts },
+      },
+      orderBy: [{ updatedAt: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+      take: limit,
+      select: {
+        id: true,
+        aggregateType: true,
+        aggregateId: true,
+        eventType: true,
+        transactionId: true,
+        attempts: true,
+        availableAt: true,
+        lastError: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  }
+
+  public async requeueDeadLetter(
+    eventId: string,
+    options: { maxAttempts?: number; now?: Date } = {},
+  ): Promise<boolean> {
+    const maxAttempts = normalizePositiveInteger(
+      options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS,
+      DEFAULT_MAX_ATTEMPTS,
+    );
+    const now = options.now ?? new Date();
+    const result = await this.prisma.outboxEvent.updateMany({
+      where: {
+        id: eventId,
+        status: 'FAILED',
+        attempts: { gte: maxAttempts },
+      },
+      data: {
+        status: 'PENDING',
+        attempts: 0,
+        availableAt: now,
+        publishedAt: null,
+        lastError: null,
+      },
+    });
+
+    return result.count === 1;
   }
 
   public async markPublished(eventId: string, publishedAt = new Date()): Promise<boolean> {
