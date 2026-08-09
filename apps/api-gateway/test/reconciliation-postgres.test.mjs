@@ -16,9 +16,15 @@ if (!integrationEnabled || !databaseUrl) {
   const providerId = `integration-provider-${Date.now()}`;
   const sourceFingerprint = `integration-source-${Date.now()}`;
   const createdBatchIds = new Set();
+  const auditedItemIds = new Set();
   let createdBatchId;
 
   test.after(async () => {
+    if (auditedItemIds.size > 0) {
+      await prisma.operationalAuditLog.deleteMany({
+        where: { resourceType: 'ReconciliationItem', resourceId: { in: [...auditedItemIds] } },
+      });
+    }
     if (createdBatchIds.size > 0) {
       const ids = [...createdBatchIds];
       await prisma.reconciliationItem.deleteMany({ where: { batchId: { in: ids } } });
@@ -77,11 +83,12 @@ if (!integrationEnabled || !databaseUrl) {
     assert.equal(batch.mismatchedItems, 1);
     assert.ok(batch.completedAt instanceof Date);
 
-    const items = await repository.listItems(result.batchId, 50);
-    assert.equal(items.length, 2);
-    assert.equal(items[0].currency, 'XOF');
-    assert.equal(items[0].internalReference, 'internal-1');
-    assert.equal(items[0].providerReference, 'provider-1');
+    const itemsPage = await repository.listItems(result.batchId, 50);
+    assert.equal(itemsPage.data.length, 2);
+    assert.equal(itemsPage.hasNextPage, false);
+    assert.equal(itemsPage.data[0].currency, 'XOF');
+    assert.equal(itemsPage.data[0].internalReference, 'internal-1');
+    assert.equal(itemsPage.data[0].providerReference, 'provider-1');
   });
 
   test('reconciliation import is idempotent for the same provider and source fingerprint', async () => {
@@ -151,11 +158,51 @@ if (!integrationEnabled || !databaseUrl) {
     assert.equal(persistedItems, 1);
   });
 
-  test('reconciliation list limits stay bounded against PostgreSQL', async () => {
-    const batches = await repository.listBatches(1000);
-    assert.ok(batches.length <= 100);
+  test('reconciliation cursor pagination is stable and bounded', async () => {
+    const first = await repository.listItems(createdBatchId, 1);
+    assert.equal(first.data.length, 1);
+    assert.equal(first.hasNextPage, true);
+    assert.ok(first.nextCursor);
 
-    const items = await repository.listItems(createdBatchId, 1000);
-    assert.ok(items.length <= 500);
+    const second = await repository.listItems(createdBatchId, 1, first.nextCursor);
+    assert.equal(second.data.length, 1);
+    assert.notEqual(second.data[0].id, first.data[0].id);
+    assert.equal(second.hasNextPage, false);
+
+    const batches = await repository.listBatches(1000);
+    assert.ok(batches.data.length <= 100);
+  });
+
+  test('manual mismatch resolution is atomic, audited and idempotent', async () => {
+    const page = await repository.listItems(createdBatchId, 50);
+    const mismatch = page.data.find((item) => item.status === 'MISMATCHED');
+    assert.ok(mismatch);
+    auditedItemIds.add(mismatch.id);
+
+    const command = {
+      itemId: mismatch.id,
+      status: 'RESOLVED',
+      resolutionNote: 'Écart vérifié avec le relevé fournisseur.',
+      reasonCode: 'PROVIDER_CONFIRMED',
+      idempotencyKey: `resolve-${mismatch.id}`,
+      correlationId: `corr-${mismatch.id}`,
+      actorId: 'integration-operator',
+      actorType: 'SERVICE_ACCOUNT',
+    };
+    const resolved = await repository.resolveItem(command);
+    assert.equal(resolved.status, 'RESOLVED');
+    assert.equal(resolved.resolutionReasonCode, 'PROVIDER_CONFIRMED');
+
+    const replay = await repository.resolveItem(command);
+    assert.equal(replay.id, resolved.id);
+    assert.equal(replay.status, 'RESOLVED');
+
+    const batch = await repository.getBatch(createdBatchId);
+    assert.equal(batch.resolvedItems, 1);
+    const audits = await prisma.operationalAuditLog.findMany({
+      where: { resourceType: 'ReconciliationItem', resourceId: mismatch.id },
+    });
+    assert.equal(audits.length, 1);
+    assert.equal(audits[0].action, 'RECONCILIATION_ITEM_RESOLVED');
   });
 }
