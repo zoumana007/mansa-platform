@@ -48,6 +48,33 @@ enum OutboxEventStatus {
   FAILED
 }
 
+enum ReconciliationBatchStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  COMPLETED_WITH_MISMATCHES
+  FAILED
+}
+
+enum ReconciliationItemStatus {
+  PENDING
+  MATCHED
+  PARTIALLY_MATCHED
+  MISMATCHED
+  RESOLVED
+  IGNORED
+}
+
+enum ReconciliationMismatchReason {
+  MISSING_INTERNAL_TRANSACTION
+  MISSING_PROVIDER_TRANSACTION
+  AMOUNT_MISMATCH
+  CURRENCY_MISMATCH
+  STATUS_MISMATCH
+  DUPLICATE_PROVIDER_TRANSACTION
+  OTHER
+}
+
 model User {
   id        String     @id @default(uuid()) @db.Uuid
   email     String?    @unique
@@ -195,4 +222,60 @@ model OperationalAuditLog {
   @@index([action, occurredAt])
   @@index([resourceType, resourceId])
   @@index([actorId, occurredAt])
+}
+
+model ReconciliationBatch {
+  id                    String                    @id @default(uuid()) @db.Uuid
+  providerId            String
+  sourceFileReference   String?
+  sourceFingerprint     String?
+  periodStart           DateTime
+  periodEnd             DateTime
+  status                ReconciliationBatchStatus @default(PENDING)
+  totalItems            Int                       @default(0)
+  matchedItems          Int                       @default(0)
+  mismatchedItems       Int                       @default(0)
+  resolvedItems         Int                       @default(0)
+  ignoredItems          Int                       @default(0)
+  failureReason         String?
+  metadata              Json?
+  startedAt             DateTime?
+  completedAt           DateTime?
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+  items                 ReconciliationItem[]
+
+  @@unique([providerId, sourceFingerprint])
+  @@index([providerId, status, createdAt])
+  @@index([periodStart, periodEnd])
+}
+
+model ReconciliationItem {
+  id                      String                       @id @default(uuid()) @db.Uuid
+  batchId                 String                       @db.Uuid
+  internalReference       String?
+  providerReference       String?
+  internalAmountMinor     BigInt?
+  providerAmountMinor     BigInt?
+  currency                String                       @db.Char(3)
+  internalStatus          String?
+  providerStatus          String?
+  providerOccurrenceCount Int                          @default(1)
+  status                  ReconciliationItemStatus     @default(PENDING)
+  mismatchReason          ReconciliationMismatchReason?
+  rawLineFingerprint      String?
+  resolutionNote          String?
+  resolutionReasonCode    String?
+  resolvedBy              String?
+  resolutionCorrelationId String?
+  resolutionIdempotencyKey String?                     @unique
+  createdAt               DateTime                     @default(now())
+  updatedAt               DateTime                     @updatedAt
+  batch                   ReconciliationBatch          @relation(fields: [batchId], references: [id], onDelete: Restrict)
+
+  @@index([batchId, status])
+  @@index([batchId, mismatchReason])
+  @@index([internalReference])
+  @@index([providerReference])
+  @@index([createdAt, id])
 }
