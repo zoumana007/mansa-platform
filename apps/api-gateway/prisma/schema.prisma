@@ -225,24 +225,24 @@ model OperationalAuditLog {
 }
 
 model ReconciliationBatch {
-  id                    String                    @id @default(uuid()) @db.Uuid
+  id                    String                     @id @default(uuid()) @db.Uuid
   providerId            String
   sourceFileReference   String?
   sourceFingerprint     String?
   periodStart           DateTime
   periodEnd             DateTime
   status                ReconciliationBatchStatus @default(PENDING)
-  totalItems            Int                       @default(0)
-  matchedItems          Int                       @default(0)
-  mismatchedItems       Int                       @default(0)
-  resolvedItems         Int                       @default(0)
-  ignoredItems          Int                       @default(0)
+  totalItems            Int                        @default(0)
+  matchedItems          Int                        @default(0)
+  mismatchedItems       Int                        @default(0)
+  resolvedItems         Int                        @default(0)
+  ignoredItems          Int                        @default(0)
   failureReason         String?
   metadata              Json?
   startedAt             DateTime?
   completedAt           DateTime?
-  createdAt             DateTime                  @default(now())
-  updatedAt             DateTime                  @updatedAt
+  createdAt             DateTime                   @default(now())
+  updatedAt             DateTime                   @updatedAt
   items                 ReconciliationItem[]
 
   @@unique([providerId, sourceFingerprint])
@@ -251,31 +251,192 @@ model ReconciliationBatch {
 }
 
 model ReconciliationItem {
-  id                      String                       @id @default(uuid()) @db.Uuid
-  batchId                 String                       @db.Uuid
-  internalReference       String?
-  providerReference       String?
-  internalAmountMinor     BigInt?
-  providerAmountMinor     BigInt?
-  currency                String                       @db.Char(3)
-  internalStatus          String?
-  providerStatus          String?
-  providerOccurrenceCount Int                          @default(1)
-  status                  ReconciliationItemStatus     @default(PENDING)
-  mismatchReason          ReconciliationMismatchReason?
-  rawLineFingerprint      String?
-  resolutionNote          String?
-  resolutionReasonCode    String?
-  resolvedBy              String?
-  resolutionCorrelationId String?
-  resolutionIdempotencyKey String?                     @unique
-  createdAt               DateTime                     @default(now())
-  updatedAt               DateTime                     @updatedAt
-  batch                   ReconciliationBatch          @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  id                       String                        @id @default(uuid()) @db.Uuid
+  batchId                  String                        @db.Uuid
+  internalReference        String?
+  providerReference        String?
+  internalAmountMinor      BigInt?
+  providerAmountMinor      BigInt?
+  currency                 String                        @db.Char(3)
+  internalStatus           String?
+  providerStatus           String?
+  providerOccurrenceCount  Int                           @default(1)
+  status                   ReconciliationItemStatus      @default(PENDING)
+  mismatchReason           ReconciliationMismatchReason?
+  rawLineFingerprint       String?
+  resolutionNote           String?
+  resolutionReasonCode     String?
+  resolvedBy               String?
+  resolutionCorrelationId  String?
+  resolutionIdempotencyKey String?                       @unique
+  createdAt                DateTime                      @default(now())
+  updatedAt                DateTime                      @updatedAt
+  batch                    ReconciliationBatch           @relation(fields: [batchId], references: [id], onDelete: Restrict)
 
   @@index([batchId, status])
   @@index([batchId, mismatchReason])
   @@index([internalReference])
   @@index([providerReference])
   @@index([createdAt, id])
+}
+
+model AccessCredentialRecord {
+  id              String   @id @default(uuid()) @db.Uuid
+  organizationId  String
+  subjectType     String
+  subjectId       String
+  credentialType  String
+  publicReference String
+  status          String
+  validFrom       DateTime?
+  validUntil      DateTime?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([organizationId, credentialType, publicReference])
+  @@index([organizationId, subjectId, status])
+}
+
+model AccessEntitlementRecord {
+  id                         String   @id @default(uuid()) @db.Uuid
+  organizationId             String
+  subjectId                  String
+  useCase                    String
+  status                     String
+  validFrom                  DateTime
+  validUntil                 DateTime?
+  allowedLocationIds         Json?
+  allowedProductCodes        Json?
+  maxUsesPerPeriod           Int?
+  period                     String?
+  amountLimitMinor           BigInt?
+  amountLimitCurrency        String?  @db.Char(3)
+  refundPolicy               String?
+  outageCompensationPolicy   String?
+  metadata                   Json?
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  @@index([organizationId, subjectId, useCase, status])
+  @@index([organizationId, validFrom, validUntil])
+}
+
+model AccessServiceAvailabilityRecord {
+  id                      String   @id @default(uuid()) @db.Uuid
+  organizationId          String
+  locationId              String
+  laneKey                 String   @default("")
+  status                  String
+  matchPolicy             String?
+  availablePaymentMethods Json
+  equipment               Json
+  effectiveFrom           DateTime
+  expectedRecoveryAt      DateTime?
+  alternativeLocationId   String?
+  publicMessageKey        String?
+  updatedBy               String
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@unique([organizationId, locationId, laneKey])
+  @@index([organizationId, status, updatedAt])
+}
+
+model AccessTerminalProfileRecord {
+  terminalId                     String   @id
+  organizationId                 String
+  locationId                     String
+  laneKey                        String   @default("")
+  heightProfile                  String
+  paymentMethods                 Json
+  qrModes                        Json?
+  supportedCurrencies            Json
+  acceptedBillDenominationsMinor Json?
+  acceptedCoinDenominationsMinor Json?
+  canGiveChange                  Boolean  @default(false)
+  receiptPrinter                 Boolean  @default(false)
+  intercom                       Boolean  @default(false)
+  createdAt                      DateTime @default(now())
+  updatedAt                      DateTime @updatedAt
+
+  @@index([organizationId, locationId, laneKey])
+}
+
+model AccessDecisionRecord {
+  id                       String   @id @default(uuid()) @db.Uuid
+  organizationId           String
+  requestId                String
+  decision                 String
+  reason                   String
+  credentialId             String?
+  subjectId                String?
+  entitlementId            String?
+  approvedAmountMinor      BigInt?
+  approvedAmountCurrency   String?  @db.Char(3)
+  fallbackPaymentMethods   Json?
+  alternativeLocationId    String?
+  publicMessageKey         String?
+  decidedAt                DateTime
+  correlationId            String
+  createdAt                DateTime @default(now())
+
+  @@unique([organizationId, requestId])
+  @@index([organizationId, decidedAt])
+  @@index([correlationId])
+}
+
+model AccessUsageRecord {
+  id                     String   @id @default(uuid()) @db.Uuid
+  organizationId         String
+  requestId              String
+  decision               String
+  credentialId           String?
+  subjectId              String?
+  entitlementId          String?
+  locationId             String
+  terminalId             String?
+  chargedAmountMinor     BigInt?
+  chargedAmountCurrency  String?  @db.Char(3)
+  paymentMethod          String?
+  externalReference      String?
+  occurredAt             DateTime
+  correlationId          String
+  createdAt              DateTime @default(now())
+
+  @@unique([organizationId, requestId])
+  @@index([organizationId, entitlementId, occurredAt])
+  @@index([organizationId, locationId, occurredAt])
+  @@index([correlationId])
+}
+
+model AccessQuotaCounter {
+  id              String   @id @default(uuid()) @db.Uuid
+  organizationId  String
+  entitlementId   String
+  period          String
+  periodStart     DateTime
+  periodEnd       DateTime
+  used            Int      @default(0)
+  limit           Int
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([organizationId, entitlementId, periodStart])
+  @@index([organizationId, periodEnd])
+}
+
+model AccessQuotaReservationRecord {
+  id              String   @id @default(uuid()) @db.Uuid
+  organizationId  String
+  entitlementId   String
+  requestId       String
+  periodStart     DateTime
+  periodEnd       DateTime
+  correlationId   String
+  createdAt       DateTime @default(now())
+
+  @@unique([organizationId, entitlementId, periodStart, requestId])
+  @@index([organizationId, entitlementId, periodStart])
+  @@index([correlationId])
 }
