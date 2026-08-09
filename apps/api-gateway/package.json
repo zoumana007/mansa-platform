@@ -9,7 +9,8 @@
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate",
     "start": "node dist/main.js",
-    "test": "pnpm run build && node --test test/*.test.mjs",
+    "test": "pnpm run build && node --test test/*.test.mjs --test-name-pattern='^(?!.*PostgreSQL integration)'",
+    "test:postgres": "pnpm run build && node --test test/reconciliation-postgres.test.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
