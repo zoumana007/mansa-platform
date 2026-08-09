@@ -17,7 +17,12 @@ const buildController = (overrides = {}) => {
       return overrides.requeueResult ?? true;
     },
   };
-  return { controller: new LedgerOutboxOperationsController(outbox), calls };
+  const audit = {
+    async record(input) {
+      calls.push(['audit', input]);
+    },
+  };
+  return { controller: new LedgerOutboxOperationsController(outbox, audit), calls };
 };
 
 test('lists dead letters with bounded defaults', async () => {
@@ -44,21 +49,62 @@ test('rejects invalid dead-letter query parameters', async () => {
   await assert.rejects(() => controller.listDeadLetters(undefined, '1001'), BadRequestException);
 });
 
-test('requeues an eligible dead letter with the configured threshold', async () => {
+test('requeues an eligible dead letter and writes an operational audit record', async () => {
   const eventId = '70c3bf7f-9596-4f25-82e4-5ff1f6f2d5e0';
   const { controller, calls } = buildController();
+  const request = { correlationId: 'corr-123' };
 
-  const result = await controller.requeueDeadLetter(eventId, '15');
+  const result = await controller.requeueDeadLetter(
+    eventId,
+    'ops-service',
+    'manual recovery after broker incident',
+    request,
+    '15',
+  );
 
   assert.deepEqual(result, { eventId, requeued: true });
-  assert.deepEqual(calls, [['requeue', eventId, { maxAttempts: 15 }]]);
+  assert.deepEqual(calls[0], ['requeue', eventId, { maxAttempts: 15 }]);
+  assert.deepEqual(calls[1], [
+    'audit',
+    {
+      correlationId: 'corr-123',
+      actorId: 'ops-service',
+      actorType: 'SERVICE_ACCOUNT',
+      action: 'LEDGER_OUTBOX_DEAD_LETTER_REQUEUED',
+      resourceType: 'OUTBOX_EVENT',
+      resourceId: eventId,
+      reason: 'manual recovery after broker incident',
+      metadata: { maxAttempts: 15 },
+    },
+  ]);
+});
+
+test('requires actor and reason before a dead-letter requeue', async () => {
+  const { controller } = buildController();
+  const eventId = '70c3bf7f-9596-4f25-82e4-5ff1f6f2d5e0';
+
+  await assert.rejects(
+    () => controller.requeueDeadLetter(eventId, undefined, 'reason', {}, '10'),
+    BadRequestException,
+  );
+  await assert.rejects(
+    () => controller.requeueDeadLetter(eventId, 'ops-service', undefined, {}, '10'),
+    BadRequestException,
+  );
 });
 
 test('returns not found when the dead letter is no longer eligible', async () => {
-  const { controller } = buildController({ requeueResult: false });
+  const { controller, calls } = buildController({ requeueResult: false });
 
   await assert.rejects(
-    () => controller.requeueDeadLetter('70c3bf7f-9596-4f25-82e4-5ff1f6f2d5e0'),
+    () =>
+      controller.requeueDeadLetter(
+        '70c3bf7f-9596-4f25-82e4-5ff1f6f2d5e0',
+        'ops-service',
+        'incident recovery',
+        { correlationId: 'corr-404' },
+      ),
     NotFoundException,
   );
+  assert.equal(calls.some(([kind]) => kind === 'audit'), false);
 });
