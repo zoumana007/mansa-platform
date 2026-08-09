@@ -7,11 +7,11 @@ import type {
 } from './reconciliation.js';
 
 export const RECONCILIATION_API_ROUTES = {
-  batches: '/v1/reconciliation/batches',
-  batchById: '/v1/reconciliation/batches/:batchId',
-  items: '/v1/reconciliation/items',
-  itemById: '/v1/reconciliation/items/:itemId',
-  resolveItem: '/v1/reconciliation/items/:itemId/resolve',
+  batches: '/v1/internal/reconciliation/batches',
+  batchById: '/v1/internal/reconciliation/batches/:batchId',
+  itemsByBatch: '/v1/internal/reconciliation/batches/:batchId/items',
+  itemById: '/v1/internal/reconciliation/items/:itemId',
+  resolveItem: '/v1/internal/reconciliation/items/:itemId/resolve',
 } as const;
 
 export const RECONCILIATION_API_METHODS = {
@@ -60,7 +60,7 @@ export interface ListReconciliationBatchesQuery extends PageRequest {
 }
 
 export interface ListReconciliationItemsQuery extends PageRequest {
-  readonly batchId?: string;
+  readonly batchId: string;
   readonly providerId?: string;
   readonly status?: ReconciliationStatus;
   readonly mismatchReason?: ReconciliationMismatchReason;
@@ -75,6 +75,8 @@ export interface ResolveReconciliationItemRequest
   readonly reasonCode: string;
   readonly idempotencyKey: string;
   readonly correlationId: string;
+  readonly actorId: string;
+  readonly actorType: string;
 }
 
 export interface ReconciliationApiContract {
@@ -92,7 +94,7 @@ export interface ReconciliationApiContract {
   };
   readonly listItems: {
     readonly method: typeof RECONCILIATION_API_METHODS.listItems;
-    readonly route: typeof RECONCILIATION_API_ROUTES.items;
+    readonly route: typeof RECONCILIATION_API_ROUTES.itemsByBatch;
     readonly query: ListReconciliationItemsQuery;
     readonly response: PageResponse<ReconciliationItem>;
   };
