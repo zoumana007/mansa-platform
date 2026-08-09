@@ -12,14 +12,11 @@ const buildController = (overrides = {}) => {
       calls.push(['list', options]);
       return overrides.deadLetters ?? [];
     },
-    async requeueDeadLetter(eventId, options) {
-      calls.push(['requeue', eventId, options]);
-      return overrides.requeueResult ?? true;
-    },
   };
   const audit = {
-    async record(input) {
-      calls.push(['audit', input]);
+    async requeueDeadLetterWithAudit(input) {
+      calls.push(['requeue-with-audit', input]);
+      return overrides.requeueResult ?? true;
     },
   };
   return { controller: new LedgerOutboxOperationsController(outbox, audit), calls };
@@ -49,7 +46,7 @@ test('rejects invalid dead-letter query parameters', async () => {
   await assert.rejects(() => controller.listDeadLetters(undefined, '1001'), BadRequestException);
 });
 
-test('requeues an eligible dead letter and writes an operational audit record', async () => {
+test('requeues an eligible dead letter and writes audit atomically', async () => {
   const eventId = '70c3bf7f-9596-4f25-82e4-5ff1f6f2d5e0';
   const { controller, calls } = buildController();
   const request = { correlationId: 'corr-123' };
@@ -63,19 +60,24 @@ test('requeues an eligible dead letter and writes an operational audit record', 
   );
 
   assert.deepEqual(result, { eventId, requeued: true });
-  assert.deepEqual(calls[0], ['requeue', eventId, { maxAttempts: 15 }]);
-  assert.deepEqual(calls[1], [
-    'audit',
-    {
-      correlationId: 'corr-123',
-      actorId: 'ops-service',
-      actorType: 'SERVICE_ACCOUNT',
-      action: 'LEDGER_OUTBOX_DEAD_LETTER_REQUEUED',
-      resourceType: 'OUTBOX_EVENT',
-      resourceId: eventId,
-      reason: 'manual recovery after broker incident',
-      metadata: { maxAttempts: 15 },
-    },
+  assert.deepEqual(calls, [
+    [
+      'requeue-with-audit',
+      {
+        eventId,
+        maxAttempts: 15,
+        audit: {
+          correlationId: 'corr-123',
+          actorId: 'ops-service',
+          actorType: 'SERVICE_ACCOUNT',
+          action: 'LEDGER_OUTBOX_DEAD_LETTER_REQUEUED',
+          resourceType: 'OUTBOX_EVENT',
+          resourceId: eventId,
+          reason: 'manual recovery after broker incident',
+          metadata: { maxAttempts: 15 },
+        },
+      },
+    ],
   ]);
 });
 
@@ -106,5 +108,6 @@ test('returns not found when the dead letter is no longer eligible', async () =>
       ),
     NotFoundException,
   );
-  assert.equal(calls.some(([kind]) => kind === 'audit'), false);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][0], 'requeue-with-audit');
 });
