@@ -85,7 +85,8 @@ if (!integrationEnabled || !databaseUrl) {
 
     const itemsPage = await repository.listItems(result.batchId, 50);
     assert.equal(itemsPage.data.length, 2);
-    assert.equal(itemsPage.hasNextPage, false);
+    assert.equal(itemsPage.page.hasNextPage, false);
+    assert.equal(itemsPage.page.nextCursor, undefined);
     assert.equal(itemsPage.data[0].currency, 'XOF');
     assert.equal(itemsPage.data[0].internalReference, 'internal-1');
     assert.equal(itemsPage.data[0].providerReference, 'provider-1');
@@ -158,19 +159,21 @@ if (!integrationEnabled || !databaseUrl) {
     assert.equal(persistedItems, 1);
   });
 
-  test('reconciliation cursor pagination is stable and bounded', async () => {
+  test('reconciliation cursor pagination is stable, bounded and uses the shared page envelope', async () => {
     const first = await repository.listItems(createdBatchId, 1);
     assert.equal(first.data.length, 1);
-    assert.equal(first.hasNextPage, true);
-    assert.ok(first.nextCursor);
+    assert.equal(first.page.hasNextPage, true);
+    assert.ok(first.page.nextCursor);
 
-    const second = await repository.listItems(createdBatchId, 1, first.nextCursor);
+    const second = await repository.listItems(createdBatchId, 1, first.page.nextCursor);
     assert.equal(second.data.length, 1);
     assert.notEqual(second.data[0].id, first.data[0].id);
-    assert.equal(second.hasNextPage, false);
+    assert.equal(second.page.hasNextPage, false);
+    assert.equal(second.page.nextCursor, undefined);
 
     const batches = await repository.listBatches(1000);
     assert.ok(batches.data.length <= 100);
+    assert.equal(typeof batches.page.hasNextPage, 'boolean');
   });
 
   test('manual mismatch resolution is atomic, audited and idempotent', async () => {
