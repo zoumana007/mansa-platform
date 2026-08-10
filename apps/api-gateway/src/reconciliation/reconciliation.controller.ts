@@ -24,6 +24,12 @@ function parseLimit(value: string | undefined, fallback: number, max: number): n
   return parsed;
 }
 
+function requireOrganizationId(value: string | undefined): string {
+  const organizationId = value?.trim();
+  if (!organizationId) throw new BadRequestException('organizationId is required');
+  return organizationId;
+}
+
 interface ResolveItemBody {
   status?: string;
   resolutionNote?: string;
@@ -41,11 +47,16 @@ export class ReconciliationController {
 
   @Get('batches')
   public async listBatches(
+    @Query('organizationId') organizationId?: string,
     @Query('limit') limit?: string,
     @Query('cursor') cursor?: string,
   ) {
     try {
-      return await this.repository.listBatches(parseLimit(limit, 50, 100), cursor);
+      return await this.repository.listBatches(
+        requireOrganizationId(organizationId),
+        parseLimit(limit, 50, 100),
+        cursor,
+      );
     } catch (error) {
       if (error instanceof Error && error.message === 'invalid reconciliation cursor') {
         throw new BadRequestException(error.message);
@@ -57,8 +68,9 @@ export class ReconciliationController {
   @Get('batches/:batchId')
   public async getBatch(
     @Param('batchId', new ParseUUIDPipe({ version: '4' })) batchId: string,
+    @Query('organizationId') organizationId?: string,
   ) {
-    const batch = await this.repository.getBatch(batchId);
+    const batch = await this.repository.getBatch(requireOrganizationId(organizationId), batchId);
     if (batch === null) throw new NotFoundException('Reconciliation batch not found.');
     return batch;
   }
@@ -66,13 +78,20 @@ export class ReconciliationController {
   @Get('batches/:batchId/items')
   public async listItems(
     @Param('batchId', new ParseUUIDPipe({ version: '4' })) batchId: string,
+    @Query('organizationId') organizationId?: string,
     @Query('limit') limit?: string,
     @Query('cursor') cursor?: string,
   ) {
-    const batch = await this.repository.getBatch(batchId);
+    const scope = requireOrganizationId(organizationId);
+    const batch = await this.repository.getBatch(scope, batchId);
     if (batch === null) throw new NotFoundException('Reconciliation batch not found.');
     try {
-      return await this.repository.listItems(batchId, parseLimit(limit, 100, 500), cursor);
+      return await this.repository.listItems(
+        scope,
+        batchId,
+        parseLimit(limit, 100, 500),
+        cursor,
+      );
     } catch (error) {
       if (error instanceof Error && error.message === 'invalid reconciliation cursor') {
         throw new BadRequestException(error.message);
@@ -84,8 +103,9 @@ export class ReconciliationController {
   @Get('items/:itemId')
   public async getItem(
     @Param('itemId', new ParseUUIDPipe({ version: '4' })) itemId: string,
+    @Query('organizationId') organizationId?: string,
   ) {
-    const item = await this.repository.getItem(itemId);
+    const item = await this.repository.getItem(requireOrganizationId(organizationId), itemId);
     if (item === null) throw new NotFoundException('Reconciliation item not found.');
     return item;
   }
@@ -93,6 +113,7 @@ export class ReconciliationController {
   @Post('items/:itemId/resolve')
   public async resolveItem(
     @Param('itemId', new ParseUUIDPipe({ version: '4' })) itemId: string,
+    @Query('organizationId') organizationId: string | undefined,
     @Body() body: ResolveItemBody,
   ) {
     if (body.status !== 'RESOLVED' && body.status !== 'IGNORED') {
@@ -100,6 +121,7 @@ export class ReconciliationController {
     }
     try {
       return await this.repository.resolveItem({
+        organizationId: requireOrganizationId(organizationId),
         itemId,
         status: body.status,
         resolutionNote: body.resolutionNote ?? '',
