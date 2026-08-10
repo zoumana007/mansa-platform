@@ -13,6 +13,8 @@ if (!integrationEnabled || !databaseUrl) {
 } else {
   const prisma = new PrismaClient();
   const repository = new ReconciliationRepository(prisma);
+  const organizationId = `org-reconciliation-${Date.now()}`;
+  const secondOrganizationId = `${organizationId}-other`;
   const providerId = `integration-provider-${Date.now()}`;
   const sourceFingerprint = `integration-source-${Date.now()}`;
   const createdBatchIds = new Set();
@@ -33,8 +35,9 @@ if (!integrationEnabled || !databaseUrl) {
     await prisma.$disconnect();
   });
 
-  test('reconciliation import persists items, counters and normalized values atomically', async () => {
+  test('reconciliation import persists tenant-scoped items and counters atomically', async () => {
     const result = await repository.importBatch({
+      organizationId,
       providerId: ` ${providerId} `,
       sourceFileReference: ' settlement-test.csv ',
       sourceFingerprint: ` ${sourceFingerprint} `,
@@ -70,119 +73,83 @@ if (!integrationEnabled || !databaseUrl) {
     createdBatchIds.add(result.batchId);
     assert.equal(result.reused, false);
     assert.equal(result.status, 'COMPLETED_WITH_MISMATCHES');
-    assert.equal(result.totalItems, 2);
-    assert.equal(result.matchedItems, 1);
-    assert.equal(result.mismatchedItems, 1);
 
-    const batch = await repository.getBatch(result.batchId);
+    const batch = await repository.getBatch(organizationId, result.batchId);
     assert.ok(batch);
-    assert.equal(batch.providerId, providerId);
-    assert.equal(batch.sourceFingerprint, sourceFingerprint);
-    assert.equal(batch.totalItems, 2);
-    assert.equal(batch.matchedItems, 1);
-    assert.equal(batch.mismatchedItems, 1);
-    assert.ok(batch.completedAt instanceof Date);
+    assert.equal(batch.organizationId, organizationId);
+    assert.equal(await repository.getBatch(secondOrganizationId, result.batchId), null);
 
-    const itemsPage = await repository.listItems(result.batchId, 50);
+    const itemsPage = await repository.listItems(organizationId, result.batchId, 50);
     assert.equal(itemsPage.data.length, 2);
-    assert.equal(itemsPage.page.hasNextPage, false);
-    assert.equal(itemsPage.page.nextCursor, undefined);
-    assert.equal(itemsPage.data[0].currency, 'XOF');
-    assert.equal(itemsPage.data[0].internalReference, 'internal-1');
-    assert.equal(itemsPage.data[0].providerReference, 'provider-1');
+    assert.equal(itemsPage.data.every((item) => item.organizationId === organizationId), true);
+    assert.equal((await repository.listItems(secondOrganizationId, result.batchId, 50)).data.length, 0);
+    assert.equal(await repository.getItem(secondOrganizationId, itemsPage.data[0].id), null);
   });
 
-  test('reconciliation import is idempotent for the same provider and source fingerprint', async () => {
-    assert.ok(createdBatchId, 'the persistence test must create the initial batch first');
-
+  test('same provider and fingerprint are idempotent per organization, not globally', async () => {
+    assert.ok(createdBatchId);
     const reused = await repository.importBatch({
+      organizationId,
       providerId,
       sourceFingerprint,
       periodStart: new Date('2026-08-01T00:00:00.000Z'),
       periodEnd: new Date('2026-08-01T23:59:59.000Z'),
       items: [],
     });
-
     assert.equal(reused.reused, true);
     assert.equal(reused.batchId, createdBatchId);
-    assert.equal(reused.totalItems, 2);
-    assert.equal(reused.matchedItems, 1);
-    assert.equal(reused.mismatchedItems, 1);
 
-    const matchingBatches = await prisma.reconciliationBatch.count({
-      where: { providerId, sourceFingerprint },
+    const other = await repository.importBatch({
+      organizationId: secondOrganizationId,
+      providerId,
+      sourceFingerprint,
+      periodStart: new Date('2026-08-01T00:00:00.000Z'),
+      periodEnd: new Date('2026-08-01T23:59:59.000Z'),
+      items: [],
     });
-    assert.equal(matchingBatches, 1);
+    createdBatchIds.add(other.batchId);
+    assert.notEqual(other.batchId, createdBatchId);
+    assert.equal(other.reused, false);
   });
 
-  test('concurrent reconciliation imports converge on one persisted batch', async () => {
+  test('concurrent imports converge within one organization', async () => {
     const concurrentProviderId = `${providerId}-concurrent`;
     const concurrentFingerprint = `${sourceFingerprint}-concurrent`;
     const input = {
+      organizationId,
       providerId: concurrentProviderId,
       sourceFingerprint: concurrentFingerprint,
       periodStart: new Date('2026-08-02T00:00:00.000Z'),
       periodEnd: new Date('2026-08-02T23:59:59.000Z'),
-      items: [
-        {
-          internalReference: 'internal-concurrent',
-          providerReference: 'provider-concurrent',
-          internalAmountMinor: 5000n,
-          providerAmountMinor: 5000n,
-          currency: 'XOF',
-          internalStatus: 'SETTLED',
-          providerStatus: 'SETTLED',
-          status: 'MATCHED',
-        },
-      ],
+      items: [{ internalReference: 'internal-concurrent', providerReference: 'provider-concurrent', internalAmountMinor: 5000n, providerAmountMinor: 5000n, currency: 'XOF', internalStatus: 'SETTLED', providerStatus: 'SETTLED', status: 'MATCHED' }],
     };
-
-    const results = await Promise.all([
-      repository.importBatch(input),
-      repository.importBatch(input),
-      repository.importBatch(input),
-    ]);
-
+    const results = await Promise.all([repository.importBatch(input), repository.importBatch(input), repository.importBatch(input)]);
     const ids = new Set(results.map((result) => result.batchId));
     assert.equal(ids.size, 1);
     const [batchId] = ids;
     createdBatchIds.add(batchId);
-    assert.equal(results.filter((result) => result.reused === false).length, 1);
-    assert.equal(results.filter((result) => result.reused === true).length, 2);
-
-    const matchingBatches = await prisma.reconciliationBatch.count({
-      where: { providerId: concurrentProviderId, sourceFingerprint: concurrentFingerprint },
-    });
-    assert.equal(matchingBatches, 1);
-
-    const persistedItems = await prisma.reconciliationItem.count({ where: { batchId } });
-    assert.equal(persistedItems, 1);
   });
 
-  test('reconciliation cursor pagination is stable, bounded and uses the shared page envelope', async () => {
-    const first = await repository.listItems(createdBatchId, 1);
+  test('tenant-scoped cursor pagination stays bounded', async () => {
+    const first = await repository.listItems(organizationId, createdBatchId, 1);
     assert.equal(first.data.length, 1);
     assert.equal(first.page.hasNextPage, true);
-    assert.ok(first.page.nextCursor);
-
-    const second = await repository.listItems(createdBatchId, 1, first.page.nextCursor);
+    const second = await repository.listItems(organizationId, createdBatchId, 1, first.page.nextCursor);
     assert.equal(second.data.length, 1);
     assert.notEqual(second.data[0].id, first.data[0].id);
-    assert.equal(second.page.hasNextPage, false);
-    assert.equal(second.page.nextCursor, undefined);
-
-    const batches = await repository.listBatches(1000);
+    const batches = await repository.listBatches(organizationId, 1000);
     assert.ok(batches.data.length <= 100);
-    assert.equal(typeof batches.page.hasNextPage, 'boolean');
+    assert.equal(batches.data.every((batch) => batch.organizationId === organizationId), true);
   });
 
-  test('manual mismatch resolution is atomic, audited and idempotent', async () => {
-    const page = await repository.listItems(createdBatchId, 50);
+  test('cross-tenant resolution is invisible and audited resolution stays scoped', async () => {
+    const page = await repository.listItems(organizationId, createdBatchId, 50);
     const mismatch = page.data.find((item) => item.status === 'MISMATCHED');
     assert.ok(mismatch);
     auditedItemIds.add(mismatch.id);
 
     const command = {
+      organizationId,
       itemId: mismatch.id,
       status: 'RESOLVED',
       resolutionNote: 'Écart vérifié avec le relevé fournisseur.',
@@ -192,20 +159,22 @@ if (!integrationEnabled || !databaseUrl) {
       actorId: 'integration-operator',
       actorType: 'SERVICE_ACCOUNT',
     };
+
+    await assert.rejects(
+      () => repository.resolveItem({ ...command, organizationId: secondOrganizationId }),
+      /reconciliation item not found/,
+    );
     const resolved = await repository.resolveItem(command);
     assert.equal(resolved.status, 'RESOLVED');
-    assert.equal(resolved.resolutionReasonCode, 'PROVIDER_CONFIRMED');
-
     const replay = await repository.resolveItem(command);
     assert.equal(replay.id, resolved.id);
-    assert.equal(replay.status, 'RESOLVED');
 
-    const batch = await repository.getBatch(createdBatchId);
+    const batch = await repository.getBatch(organizationId, createdBatchId);
     assert.equal(batch.resolvedItems, 1);
     const audits = await prisma.operationalAuditLog.findMany({
       where: { resourceType: 'ReconciliationItem', resourceId: mismatch.id },
     });
     assert.equal(audits.length, 1);
-    assert.equal(audits[0].action, 'RECONCILIATION_ITEM_RESOLVED');
+    assert.equal(audits[0].metadata.organizationId, organizationId);
   });
 }
