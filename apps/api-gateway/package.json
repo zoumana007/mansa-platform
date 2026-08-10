@@ -10,7 +10,7 @@
     "prisma:validate": "prisma validate",
     "start": "node dist/main.js",
     "test": "pnpm run build && node --test test/*.test.mjs",
-    "test:postgres": "RUN_POSTGRES_TESTS=1 pnpm run build && RUN_POSTGRES_TESTS=1 node --test test/reconciliation-postgres.test.mjs test/access-postgres.test.mjs test/access-management-postgres.test.mjs test/access-status-postgres.test.mjs",
+    "test:postgres": "RUN_POSTGRES_TESTS=1 pnpm run build && RUN_POSTGRES_TESTS=1 node --test test/reconciliation-postgres.test.mjs test/access-postgres.test.mjs test/access-management-postgres.test.mjs test/access-status-postgres.test.mjs test/idempotency-postgres.test.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
