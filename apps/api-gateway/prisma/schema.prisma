@@ -226,6 +226,7 @@ model OperationalAuditLog {
 
 model ReconciliationBatch {
   id                    String                     @id @default(uuid()) @db.Uuid
+  organizationId        String
   providerId            String
   sourceFileReference   String?
   sourceFingerprint     String?
@@ -245,13 +246,15 @@ model ReconciliationBatch {
   updatedAt             DateTime                   @updatedAt
   items                 ReconciliationItem[]
 
-  @@unique([providerId, sourceFingerprint])
-  @@index([providerId, status, createdAt])
-  @@index([periodStart, periodEnd])
+  @@unique([organizationId, providerId, sourceFingerprint])
+  @@index([organizationId, status, createdAt])
+  @@index([organizationId, providerId, status, createdAt])
+  @@index([organizationId, periodStart, periodEnd])
 }
 
 model ReconciliationItem {
   id                       String                        @id @default(uuid()) @db.Uuid
+  organizationId           String
   batchId                  String                        @db.Uuid
   internalReference        String?
   providerReference        String?
@@ -268,16 +271,17 @@ model ReconciliationItem {
   resolutionReasonCode     String?
   resolvedBy               String?
   resolutionCorrelationId  String?
-  resolutionIdempotencyKey String?                       @unique
+  resolutionIdempotencyKey String?
   createdAt                DateTime                      @default(now())
   updatedAt                DateTime                      @updatedAt
   batch                    ReconciliationBatch           @relation(fields: [batchId], references: [id], onDelete: Restrict)
 
-  @@index([batchId, status])
-  @@index([batchId, mismatchReason])
-  @@index([internalReference])
-  @@index([providerReference])
-  @@index([createdAt, id])
+  @@unique([organizationId, resolutionIdempotencyKey])
+  @@index([organizationId, batchId, status])
+  @@index([organizationId, batchId, mismatchReason])
+  @@index([organizationId, internalReference])
+  @@index([organizationId, providerReference])
+  @@index([organizationId, createdAt, id])
 }
 
 model AccessCredentialRecord {
