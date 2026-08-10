@@ -77,7 +77,7 @@ export class OperationIdempotencyRegistry {
         throw new Error('idempotency key already used with a different payload');
       }
       if (existing.status === 'COMPLETED' && existing.response !== null) {
-        return existing.response as T;
+        return existing.response as unknown as T;
       }
       if (options.recover) {
         const recovered = await options.recover();
