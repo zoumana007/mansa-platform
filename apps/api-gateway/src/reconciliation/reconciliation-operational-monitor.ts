@@ -113,7 +113,8 @@ export class ReconciliationOperationalMonitor {
     this.importedItems += itemCount;
     this.matchedItems += validatedOutcome.matched;
     this.mismatchedItems += validatedOutcome.mismatched;
-    for (const [reason, count] of Object.entries(validatedOutcome.byReason ?? {})) {
+    for (const [reason, rawCount] of Object.entries(validatedOutcome.byReason ?? {})) {
+      const count = requireCount(rawCount, `validatedOutcome.byReason.${reason}`);
       this.mismatchReasons[reason as ReconciliationMismatchReason] += count;
     }
     this.completedImportDurationMsTotal += validatedDurationMs;
