@@ -54,6 +54,23 @@ export interface ResolveReconciliationItemInput {
   actorType: string;
 }
 
+export interface ReconciliationBatchFilters {
+  providerId?: string;
+  status?: ReconciliationBatchStatus;
+  periodStartFrom?: Date;
+  periodEndTo?: Date;
+}
+
+export interface ReconciliationItemFilters {
+  providerId?: string;
+  status?: ReconciliationItemStatus;
+  mismatchReason?: ReconciliationMismatchReason;
+  internalReference?: string;
+  providerReference?: string;
+  createdFrom?: Date;
+  createdTo?: Date;
+}
+
 type CursorPayload = { createdAt: string; id: string };
 
 function requireOrganizationId(organizationId: string): string {
@@ -282,13 +299,23 @@ export class ReconciliationRepository {
     });
   }
 
-  public async listBatches(organizationId: string, take = 50, cursor?: string) {
+  public async listBatches(
+    organizationId: string,
+    take = 50,
+    cursor?: string,
+    filters: ReconciliationBatchFilters = {},
+  ) {
     const scope = requireOrganizationId(organizationId);
     const boundedTake = Math.max(1, Math.min(take, 100));
     const decoded = decodeCursor(cursor);
+    const providerId = filters.providerId?.trim();
     const rows = await this.prisma.reconciliationBatch.findMany({
       where: {
         organizationId: scope,
+        ...(providerId ? { providerId } : {}),
+        ...(filters.status ? { status: filters.status } : {}),
+        ...(filters.periodStartFrom ? { periodStart: { gte: filters.periodStartFrom } } : {}),
+        ...(filters.periodEndTo ? { periodEnd: { lte: filters.periodEndTo } } : {}),
         ...(decoded
           ? {
               OR: [
@@ -318,19 +345,40 @@ export class ReconciliationRepository {
     batchId: string,
     take = 100,
     cursor?: string,
+    filters: ReconciliationItemFilters = {},
   ) {
     const scope = requireOrganizationId(organizationId);
     const boundedTake = Math.max(1, Math.min(take, 500));
     const decoded = decodeCursor(cursor);
+    const providerId = filters.providerId?.trim();
+    const internalReference = filters.internalReference?.trim();
+    const providerReference = filters.providerReference?.trim();
     const rows = await this.prisma.reconciliationItem.findMany({
       where: {
         organizationId: scope,
         batchId,
+        ...(providerId ? { batch: { providerId } } : {}),
+        ...(filters.status ? { status: filters.status } : {}),
+        ...(filters.mismatchReason ? { mismatchReason: filters.mismatchReason } : {}),
+        ...(internalReference ? { internalReference } : {}),
+        ...(providerReference ? { providerReference } : {}),
+        ...((filters.createdFrom || filters.createdTo)
+          ? {
+              createdAt: {
+                ...(filters.createdFrom ? { gte: filters.createdFrom } : {}),
+                ...(filters.createdTo ? { lte: filters.createdTo } : {}),
+              },
+            }
+          : {}),
         ...(decoded
           ? {
-              OR: [
-                { createdAt: { gt: decoded.createdAt } },
-                { createdAt: decoded.createdAt, id: { gt: decoded.id } },
+              AND: [
+                {
+                  OR: [
+                    { createdAt: { gt: decoded.createdAt } },
+                    { createdAt: decoded.createdAt, id: { gt: decoded.id } },
+                  ],
+                },
               ],
             }
           : {}),
