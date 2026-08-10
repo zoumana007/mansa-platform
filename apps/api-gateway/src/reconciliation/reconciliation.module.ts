@@ -7,6 +7,7 @@ import { WORKLOAD_IDENTITY_VERIFIER } from '../workload-identity.verifier';
 import { WorkloadScopeGuard } from '../workload-scope.guard';
 import { ReconciliationController } from './reconciliation.controller';
 import { ReconciliationImportService } from './reconciliation-import.service';
+import { ReconciliationMetricsController } from './reconciliation-metrics.controller';
 import {
   LowCardinalityReconciliationMetricsExporter,
   RECONCILIATION_METRICS_EXPORTER,
@@ -16,7 +17,7 @@ import { TestReconciliationProviderAdapter } from './reconciliation-provider.ada
 import { ReconciliationRepository } from './reconciliation.repository';
 
 @Module({
-  controllers: [ReconciliationController],
+  controllers: [ReconciliationController, ReconciliationMetricsController],
   providers: [
     PrismaService,
     ReconciliationRepository,
