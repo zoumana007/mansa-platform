@@ -5,6 +5,7 @@ export const WORKLOAD_IDENTITY_SCOPES = [
   'ledger:write',
   'reconciliation:read',
   'reconciliation:write',
+  'reconciliation:metrics:read',
   'operations:read',
   'operations:write',
 ] as const;
