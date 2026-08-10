@@ -3,6 +3,8 @@ import { Prisma } from '@prisma/client';
 import type {
   CreateAccessCredentialCommand,
   CreateAccessEntitlementCommand,
+  ReplaceAccessCredentialCommand,
+  ReplaceAccessCredentialResult,
   UpdateAccessCredentialStatusCommand,
   UpdateAccessEntitlementStatusCommand,
 } from '@mansa/contracts/access-mobility-api';
@@ -47,16 +49,8 @@ function metadata(value: Prisma.JsonValue | null): Readonly<Record<string, strin
 }
 
 function credentialFromRow(row: {
-  id: string;
-  organizationId: string;
-  subjectType: string;
-  subjectId: string;
-  credentialType: string;
-  publicReference: string;
-  status: string;
-  validFrom: Date | null;
-  validUntil: Date | null;
-  metadata: Prisma.JsonValue | null;
+  id: string; organizationId: string; subjectType: string; subjectId: string; credentialType: string;
+  publicReference: string; status: string; validFrom: Date | null; validUntil: Date | null; metadata: Prisma.JsonValue | null;
 }): AccessCredential {
   const parsedMetadata = metadata(row.metadata);
   return {
@@ -74,29 +68,13 @@ function credentialFromRow(row: {
 }
 
 function entitlementFromRow(row: {
-  id: string;
-  organizationId: string;
-  subjectId: string;
-  useCase: string;
-  status: string;
-  validFrom: Date;
-  validUntil: Date | null;
-  allowedLocationIds: Prisma.JsonValue | null;
-  allowedProductCodes: Prisma.JsonValue | null;
-  maxUsesPerPeriod: number | null;
-  period: string | null;
-  amountLimitMinor: bigint | null;
-  amountLimitCurrency: string | null;
-  refundPolicy: string | null;
-  outageCompensationPolicy: string | null;
-  metadata: Prisma.JsonValue | null;
+  id: string; organizationId: string; subjectId: string; useCase: string; status: string; validFrom: Date;
+  validUntil: Date | null; allowedLocationIds: Prisma.JsonValue | null; allowedProductCodes: Prisma.JsonValue | null;
+  maxUsesPerPeriod: number | null; period: string | null; amountLimitMinor: bigint | null; amountLimitCurrency: string | null;
+  refundPolicy: string | null; outageCompensationPolicy: string | null; metadata: Prisma.JsonValue | null;
 }): AccessEntitlement {
-  const locations = Array.isArray(row.allowedLocationIds)
-    ? row.allowedLocationIds.filter((value): value is string => typeof value === 'string')
-    : undefined;
-  const products = Array.isArray(row.allowedProductCodes)
-    ? row.allowedProductCodes.filter((value): value is string => typeof value === 'string')
-    : undefined;
+  const locations = Array.isArray(row.allowedLocationIds) ? row.allowedLocationIds.filter((value): value is string => typeof value === 'string') : undefined;
+  const products = Array.isArray(row.allowedProductCodes) ? row.allowedProductCodes.filter((value): value is string => typeof value === 'string') : undefined;
   const parsedMetadata = metadata(row.metadata);
   return {
     id: row.id,
@@ -110,13 +88,9 @@ function entitlementFromRow(row: {
     ...(products ? { allowedProductCodes: products } : {}),
     ...(row.maxUsesPerPeriod === null ? {} : { maxUsesPerPeriod: row.maxUsesPerPeriod }),
     ...(row.period === null ? {} : { period: row.period as NonNullable<AccessEntitlement['period']> }),
-    ...(row.amountLimitMinor === null || row.amountLimitCurrency === null
-      ? {}
-      : { amountLimit: { amountMinor: row.amountLimitMinor.toString(), currency: row.amountLimitCurrency } }),
+    ...(row.amountLimitMinor === null || row.amountLimitCurrency === null ? {} : { amountLimit: { amountMinor: row.amountLimitMinor.toString(), currency: row.amountLimitCurrency } }),
     ...(row.refundPolicy === null ? {} : { refundPolicy: row.refundPolicy as NonNullable<AccessEntitlement['refundPolicy']> }),
-    ...(row.outageCompensationPolicy === null
-      ? {}
-      : { outageCompensationPolicy: row.outageCompensationPolicy as NonNullable<AccessEntitlement['outageCompensationPolicy']> }),
+    ...(row.outageCompensationPolicy === null ? {} : { outageCompensationPolicy: row.outageCompensationPolicy as NonNullable<AccessEntitlement['outageCompensationPolicy']> }),
     ...(parsedMetadata ? { metadata: parsedMetadata } : {}),
   };
 }
@@ -127,16 +101,12 @@ function isUniqueConstraint(error: unknown): boolean {
 
 function assertCredentialTransition(current: AccessCredential['status'], target: AccessCredential['status']): void {
   if (current === target) return;
-  if (!CREDENTIAL_TRANSITIONS[current].includes(target)) {
-    throw new Error(`credential status transition ${current} -> ${target} is not allowed`);
-  }
+  if (!CREDENTIAL_TRANSITIONS[current].includes(target)) throw new Error(`credential status transition ${current} -> ${target} is not allowed`);
 }
 
 function assertEntitlementTransition(current: AccessEntitlement['status'], target: AccessEntitlement['status']): void {
   if (current === target) return;
-  if (!ENTITLEMENT_TRANSITIONS[current].includes(target)) {
-    throw new Error(`entitlement status transition ${current} -> ${target} is not allowed`);
-  }
+  if (!ENTITLEMENT_TRANSITIONS[current].includes(target)) throw new Error(`entitlement status transition ${current} -> ${target} is not allowed`);
 }
 
 @Injectable()
@@ -155,13 +125,9 @@ export class AccessManagementRepository {
     const validUntil = normalizeDate(credential.validUntil, 'credential.validUntil');
     if (validFrom && validUntil && validUntil < validFrom) throw new Error('credential.validUntil must not precede validFrom');
 
-    const existing = await this.prisma.accessCredentialRecord.findFirst({
-      where: { OR: [{ id }, { organizationId, credentialType: credential.credentialType, publicReference }] },
-    });
+    const existing = await this.prisma.accessCredentialRecord.findFirst({ where: { OR: [{ id }, { organizationId, credentialType: credential.credentialType, publicReference }] } });
     if (existing) {
-      if (existing.organizationId !== organizationId || existing.id !== id) {
-        throw new Error('credential identifier or public reference already belongs to another resource');
-      }
+      if (existing.organizationId !== organizationId || existing.id !== id) throw new Error('credential identifier or public reference already belongs to another resource');
       return credentialFromRow(existing);
     }
 
@@ -169,28 +135,16 @@ export class AccessManagementRepository {
       const row = await this.prisma.$transaction(async (tx) => {
         const created = await tx.accessCredentialRecord.create({
           data: {
-            id,
-            organizationId,
-            subjectType: credential.subjectType,
-            subjectId,
-            credentialType: credential.credentialType,
-            publicReference,
-            status: credential.status,
-            ...(validFrom ? { validFrom } : {}),
-            ...(validUntil ? { validUntil } : {}),
+            id, organizationId, subjectType: credential.subjectType, subjectId, credentialType: credential.credentialType,
+            publicReference, status: credential.status,
+            ...(validFrom ? { validFrom } : {}), ...(validUntil ? { validUntil } : {}),
             ...(credential.metadata ? { metadata: credential.metadata as Prisma.InputJsonValue } : {}),
           },
         });
         await tx.operationalAuditLog.create({
           data: {
-            correlationId,
-            actorId: 'internal-service',
-            actorType: 'SERVICE',
-            action: 'ACCESS_CREDENTIAL_CREATED',
-            resourceType: 'AccessCredential',
-            resourceId: id,
-            reason: 'CREATE',
-            metadata: { organizationId, subjectId, idempotencyKey },
+            correlationId, actorId: 'internal-service', actorType: 'SERVICE', action: 'ACCESS_CREDENTIAL_CREATED',
+            resourceType: 'AccessCredential', resourceId: id, reason: 'CREATE', metadata: { organizationId, subjectId, idempotencyKey },
           },
         });
         return created;
@@ -198,9 +152,7 @@ export class AccessManagementRepository {
       return credentialFromRow(row);
     } catch (error) {
       if (isUniqueConstraint(error)) {
-        const replay = await this.prisma.accessCredentialRecord.findFirst({
-          where: { OR: [{ id }, { organizationId, credentialType: credential.credentialType, publicReference }] },
-        });
+        const replay = await this.prisma.accessCredentialRecord.findFirst({ where: { OR: [{ id }, { organizationId, credentialType: credential.credentialType, publicReference }] } });
         if (replay?.id === id && replay.organizationId === organizationId) return credentialFromRow(replay);
       }
       throw error;
@@ -220,24 +172,66 @@ export class AccessManagementRepository {
       const currentStatus = current.status as AccessCredential['status'];
       assertCredentialTransition(currentStatus, command.targetStatus);
       if (currentStatus === command.targetStatus) return credentialFromRow(current);
-
-      const updated = await tx.accessCredentialRecord.update({
-        where: { id: credentialId },
-        data: { status: command.targetStatus },
-      });
+      const updated = await tx.accessCredentialRecord.update({ where: { id: credentialId }, data: { status: command.targetStatus } });
       await tx.operationalAuditLog.create({
         data: {
-          correlationId,
-          actorId: 'internal-service',
-          actorType: 'SERVICE',
-          action: 'ACCESS_CREDENTIAL_STATUS_CHANGED',
-          resourceType: 'AccessCredential',
-          resourceId: credentialId,
-          reason,
+          correlationId, actorId: 'internal-service', actorType: 'SERVICE', action: 'ACCESS_CREDENTIAL_STATUS_CHANGED',
+          resourceType: 'AccessCredential', resourceId: credentialId, reason,
           metadata: { organizationId, previousStatus: currentStatus, targetStatus: command.targetStatus, idempotencyKey },
         },
       });
       return credentialFromRow(updated);
+    });
+  }
+
+  public async replaceCredential(command: ReplaceAccessCredentialCommand): Promise<ReplaceAccessCredentialResult> {
+    const organizationId = normalizeRequired('organizationId', command.organizationId);
+    const credentialId = normalizeRequired('credentialId', command.credentialId);
+    const reason = normalizeRequired('reason', command.reason);
+    const idempotencyKey = normalizeRequired('idempotencyKey', command.idempotencyKey);
+    const correlationId = normalizeRequired('correlationId', command.correlationId);
+    const replacement = command.replacement;
+    const replacementId = normalizeRequired('replacement.id', replacement.id);
+    const replacementOrganizationId = normalizeRequired('replacement.organizationId', replacement.organizationId);
+    const replacementSubjectId = normalizeRequired('replacement.subjectId', replacement.subjectId);
+    const replacementPublicReference = normalizeRequired('replacement.publicReference', replacement.publicReference);
+    if (replacementOrganizationId !== organizationId) throw new Error('replacement credential must belong to the same tenant');
+    if (replacementId === credentialId) throw new Error('replacement credential must use a different identifier');
+    const validFrom = normalizeDate(replacement.validFrom, 'replacement.validFrom');
+    const validUntil = normalizeDate(replacement.validUntil, 'replacement.validUntil');
+    if (validFrom && validUntil && validUntil < validFrom) throw new Error('replacement.validUntil must not precede validFrom');
+
+    return this.prisma.$transaction(async (tx) => {
+      const current = await tx.accessCredentialRecord.findUnique({ where: { id: credentialId } });
+      if (!current || current.organizationId !== organizationId) throw new Error('credential not found for tenant');
+      if (current.status === 'REVOKED' || current.status === 'EXPIRED') throw new Error('credential can no longer be replaced');
+      if (current.subjectId !== replacementSubjectId) throw new Error('replacement credential must keep the same subject');
+
+      const duplicate = await tx.accessCredentialRecord.findFirst({
+        where: { OR: [{ id: replacementId }, { organizationId, credentialType: replacement.credentialType, publicReference: replacementPublicReference }] },
+      });
+      if (duplicate) throw new Error('replacement credential identifier or public reference already exists');
+
+      const revoked = await tx.accessCredentialRecord.update({ where: { id: credentialId }, data: { status: 'REVOKED' } });
+      const created = await tx.accessCredentialRecord.create({
+        data: {
+          id: replacementId, organizationId, subjectType: replacement.subjectType, subjectId: replacementSubjectId,
+          credentialType: replacement.credentialType, publicReference: replacementPublicReference, status: replacement.status,
+          ...(validFrom ? { validFrom } : {}), ...(validUntil ? { validUntil } : {}),
+          ...(replacement.metadata ? { metadata: replacement.metadata as Prisma.InputJsonValue } : {}),
+        },
+      });
+      await tx.operationalAuditLog.create({
+        data: {
+          correlationId, actorId: 'internal-service', actorType: 'SERVICE', action: 'ACCESS_CREDENTIAL_REPLACED',
+          resourceType: 'AccessCredential', resourceId: credentialId, reason,
+          metadata: {
+            organizationId, idempotencyKey, replacesCredentialId: credentialId, replacedByCredentialId: replacementId,
+            subjectId: current.subjectId, previousStatus: current.status, replacementStatus: replacement.status,
+          },
+        },
+      });
+      return { revokedCredential: credentialFromRow(revoked), replacementCredential: credentialFromRow(created) };
     });
   }
 
@@ -252,9 +246,7 @@ export class AccessManagementRepository {
     if (!validFrom) throw new Error('entitlement.validFrom is required');
     const validUntil = normalizeDate(entitlement.validUntil, 'entitlement.validUntil');
     if (validUntil && validUntil < validFrom) throw new Error('entitlement.validUntil must not precede validFrom');
-    if (entitlement.maxUsesPerPeriod !== undefined && (!Number.isSafeInteger(entitlement.maxUsesPerPeriod) || entitlement.maxUsesPerPeriod < 1)) {
-      throw new Error('entitlement.maxUsesPerPeriod must be a positive safe integer');
-    }
+    if (entitlement.maxUsesPerPeriod !== undefined && (!Number.isSafeInteger(entitlement.maxUsesPerPeriod) || entitlement.maxUsesPerPeriod < 1)) throw new Error('entitlement.maxUsesPerPeriod must be a positive safe integer');
     const amountMinor = entitlement.amountLimit ? BigInt(entitlement.amountLimit.amountMinor) : undefined;
 
     const existing = await this.prisma.accessEntitlementRecord.findUnique({ where: { id } });
@@ -267,12 +259,7 @@ export class AccessManagementRepository {
       const row = await this.prisma.$transaction(async (tx) => {
         const created = await tx.accessEntitlementRecord.create({
           data: {
-            id,
-            organizationId,
-            subjectId,
-            useCase: entitlement.useCase,
-            status: entitlement.status,
-            validFrom,
+            id, organizationId, subjectId, useCase: entitlement.useCase, status: entitlement.status, validFrom,
             ...(validUntil ? { validUntil } : {}),
             ...(entitlement.allowedLocationIds ? { allowedLocationIds: [...entitlement.allowedLocationIds] } : {}),
             ...(entitlement.allowedProductCodes ? { allowedProductCodes: [...entitlement.allowedProductCodes] } : {}),
@@ -286,14 +273,8 @@ export class AccessManagementRepository {
         });
         await tx.operationalAuditLog.create({
           data: {
-            correlationId,
-            actorId: 'internal-service',
-            actorType: 'SERVICE',
-            action: 'ACCESS_ENTITLEMENT_CREATED',
-            resourceType: 'AccessEntitlement',
-            resourceId: id,
-            reason: 'CREATE',
-            metadata: { organizationId, subjectId, idempotencyKey },
+            correlationId, actorId: 'internal-service', actorType: 'SERVICE', action: 'ACCESS_ENTITLEMENT_CREATED',
+            resourceType: 'AccessEntitlement', resourceId: id, reason: 'CREATE', metadata: { organizationId, subjectId, idempotencyKey },
           },
         });
         return created;
@@ -314,27 +295,17 @@ export class AccessManagementRepository {
     const reason = normalizeRequired('reason', command.reason);
     const idempotencyKey = normalizeRequired('idempotencyKey', command.idempotencyKey);
     const correlationId = normalizeRequired('correlationId', command.correlationId);
-
     return this.prisma.$transaction(async (tx) => {
       const current = await tx.accessEntitlementRecord.findUnique({ where: { id: entitlementId } });
       if (!current || current.organizationId !== organizationId) throw new Error('entitlement not found for tenant');
       const currentStatus = current.status as AccessEntitlement['status'];
       assertEntitlementTransition(currentStatus, command.targetStatus);
       if (currentStatus === command.targetStatus) return entitlementFromRow(current);
-
-      const updated = await tx.accessEntitlementRecord.update({
-        where: { id: entitlementId },
-        data: { status: command.targetStatus },
-      });
+      const updated = await tx.accessEntitlementRecord.update({ where: { id: entitlementId }, data: { status: command.targetStatus } });
       await tx.operationalAuditLog.create({
         data: {
-          correlationId,
-          actorId: 'internal-service',
-          actorType: 'SERVICE',
-          action: 'ACCESS_ENTITLEMENT_STATUS_CHANGED',
-          resourceType: 'AccessEntitlement',
-          resourceId: entitlementId,
-          reason,
+          correlationId, actorId: 'internal-service', actorType: 'SERVICE', action: 'ACCESS_ENTITLEMENT_STATUS_CHANGED',
+          resourceType: 'AccessEntitlement', resourceId: entitlementId, reason,
           metadata: { organizationId, previousStatus: currentStatus, targetStatus: command.targetStatus, idempotencyKey },
         },
       });
