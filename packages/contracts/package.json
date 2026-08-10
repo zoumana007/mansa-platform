@@ -11,6 +11,7 @@
     "./api-contracts": { "types": "./dist/api-contracts.d.ts", "import": "./dist/api-contracts.js" },
     "./api-response": { "types": "./dist/api-response.d.ts", "import": "./dist/api-response.js" },
     "./identity-api": { "types": "./dist/identity-api.d.ts", "import": "./dist/identity-api.js" },
+    "./workload-identity": { "types": "./dist/workload-identity.d.ts", "import": "./dist/workload-identity.js" },
     "./kyc-api": { "types": "./dist/kyc-api.d.ts", "import": "./dist/kyc-api.js" },
     "./ledger": { "types": "./dist/ledger.d.ts", "import": "./dist/ledger.js" },
     "./ledger-api": { "types": "./dist/ledger-api.d.ts", "import": "./dist/ledger-api.js" },
