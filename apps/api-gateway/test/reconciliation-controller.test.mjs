@@ -8,30 +8,33 @@ import {
 
 import { ReconciliationController } from '../dist/reconciliation/reconciliation.controller.js';
 
+const organizationId = 'org-test';
+
 function createRepository(overrides = {}) {
   return {
-    listBatches: async (limit, cursor) => ({ data: [], hasNextPage: false, limit, cursor }),
+    listBatches: async (scope, limit, cursor) => ({ data: [], page: { hasNextPage: false }, scope, limit, cursor }),
     getBatch: async () => ({ id: '00000000-0000-4000-8000-000000000001' }),
-    listItems: async (batchId, limit, cursor) => ({ data: [], hasNextPage: false, batchId, limit, cursor }),
+    listItems: async (scope, batchId, limit, cursor) => ({ data: [], page: { hasNextPage: false }, scope, batchId, limit, cursor }),
     getItem: async () => ({ id: '00000000-0000-4000-8000-000000000002' }),
     resolveItem: async (input) => ({ id: input.itemId, status: input.status }),
     ...overrides,
   };
 }
 
-test('listBatches applies defaults and forwards cursor', async () => {
+test('listBatches requires organization scope and forwards defaults and cursor', async () => {
   const calls = [];
   const controller = new ReconciliationController(
     createRepository({
-      listBatches: async (limit, cursor) => {
-        calls.push({ limit, cursor });
-        return { data: [], hasNextPage: false };
+      listBatches: async (scope, limit, cursor) => {
+        calls.push({ scope, limit, cursor });
+        return { data: [], page: { hasNextPage: false } };
       },
     }),
   );
 
-  await controller.listBatches(undefined, 'cursor-1');
-  assert.deepEqual(calls, [{ limit: 50, cursor: 'cursor-1' }]);
+  await assert.rejects(() => controller.listBatches(undefined), BadRequestException);
+  await controller.listBatches(organizationId, undefined, 'cursor-1');
+  assert.deepEqual(calls, [{ scope: organizationId, limit: 50, cursor: 'cursor-1' }]);
 });
 
 test('listBatches rejects invalid limits and invalid cursors', async () => {
@@ -43,48 +46,68 @@ test('listBatches rejects invalid limits and invalid cursors', async () => {
     }),
   );
 
-  await assert.rejects(() => controller.listBatches('0'), BadRequestException);
-  await assert.rejects(() => controller.listBatches('101'), BadRequestException);
-  await assert.rejects(() => controller.listBatches('abc'), BadRequestException);
-  await assert.rejects(() => controller.listBatches('10', 'broken'), BadRequestException);
-});
-
-test('batch and item reads return 404 when resources do not exist', async () => {
-  const controller = new ReconciliationController(
-    createRepository({ getBatch: async () => null, getItem: async () => null }),
-  );
-
+  await assert.rejects(() => controller.listBatches(organizationId, '0'), BadRequestException);
+  await assert.rejects(() => controller.listBatches(organizationId, '101'), BadRequestException);
+  await assert.rejects(() => controller.listBatches(organizationId, 'abc'), BadRequestException);
   await assert.rejects(
-    () => controller.getBatch('00000000-0000-4000-8000-000000000001'),
-    NotFoundException,
-  );
-  await assert.rejects(
-    () => controller.getItem('00000000-0000-4000-8000-000000000002'),
-    NotFoundException,
+    () => controller.listBatches(organizationId, '10', 'broken'),
+    BadRequestException,
   );
 });
 
-test('listItems checks batch existence, bounds limits and forwards cursor', async () => {
+test('batch and item reads are scoped and return 404 when resources do not exist', async () => {
   const calls = [];
   const controller = new ReconciliationController(
     createRepository({
-      listItems: async (batchId, limit, cursor) => {
-        calls.push({ batchId, limit, cursor });
-        return { data: [], hasNextPage: false };
+      getBatch: async (scope, id) => {
+        calls.push({ kind: 'batch', scope, id });
+        return null;
+      },
+      getItem: async (scope, id) => {
+        calls.push({ kind: 'item', scope, id });
+        return null;
+      },
+    }),
+  );
+
+  await assert.rejects(
+    () => controller.getBatch('00000000-0000-4000-8000-000000000001', organizationId),
+    NotFoundException,
+  );
+  await assert.rejects(
+    () => controller.getItem('00000000-0000-4000-8000-000000000002', organizationId),
+    NotFoundException,
+  );
+  assert.equal(calls.every((call) => call.scope === organizationId), true);
+});
+
+test('listItems checks scoped batch existence, bounds limits and forwards cursor', async () => {
+  const calls = [];
+  const controller = new ReconciliationController(
+    createRepository({
+      listItems: async (scope, batchId, limit, cursor) => {
+        calls.push({ scope, batchId, limit, cursor });
+        return { data: [], page: { hasNextPage: false } };
       },
     }),
   );
   const batchId = '00000000-0000-4000-8000-000000000001';
 
-  await controller.listItems(batchId, undefined, 'cursor-2');
-  assert.deepEqual(calls, [{ batchId, limit: 100, cursor: 'cursor-2' }]);
-  await assert.rejects(() => controller.listItems(batchId, '501'), BadRequestException);
+  await controller.listItems(batchId, organizationId, undefined, 'cursor-2');
+  assert.deepEqual(calls, [{ scope: organizationId, batchId, limit: 100, cursor: 'cursor-2' }]);
+  await assert.rejects(
+    () => controller.listItems(batchId, organizationId, '501'),
+    BadRequestException,
+  );
 
   const missing = new ReconciliationController(createRepository({ getBatch: async () => null }));
-  await assert.rejects(() => missing.listItems(batchId), NotFoundException);
+  await assert.rejects(
+    () => missing.listItems(batchId, organizationId),
+    NotFoundException,
+  );
 });
 
-test('resolveItem validates status and maps repository domain failures to HTTP errors', async () => {
+test('resolveItem validates organization and status and maps repository domain failures', async () => {
   const itemId = '00000000-0000-4000-8000-000000000002';
   const validBody = {
     status: 'RESOLVED',
@@ -98,22 +121,32 @@ test('resolveItem validates status and maps repository domain failures to HTTP e
 
   const invalidStatus = new ReconciliationController(createRepository());
   await assert.rejects(
-    () => invalidStatus.resolveItem(itemId, { ...validBody, status: 'UNKNOWN' }),
+    () => invalidStatus.resolveItem(itemId, organizationId, { ...validBody, status: 'UNKNOWN' }),
+    BadRequestException,
+  );
+  await assert.rejects(
+    () => invalidStatus.resolveItem(itemId, undefined, validBody),
     BadRequestException,
   );
 
   const missing = new ReconciliationController(
     createRepository({ resolveItem: async () => { throw new Error('reconciliation item not found'); } }),
   );
-  await assert.rejects(() => missing.resolveItem(itemId, validBody), NotFoundException);
+  await assert.rejects(
+    () => missing.resolveItem(itemId, organizationId, validBody),
+    NotFoundException,
+  );
 
   const badRequest = new ReconciliationController(
     createRepository({ resolveItem: async () => { throw new Error('resolutionNote, reasonCode, idempotencyKey, correlationId, actorId and actorType are required'); } }),
   );
-  await assert.rejects(() => badRequest.resolveItem(itemId, validBody), BadRequestException);
+  await assert.rejects(
+    () => badRequest.resolveItem(itemId, organizationId, validBody),
+    BadRequestException,
+  );
 });
 
-test('resolveItem forwards the complete auditable command', async () => {
+test('resolveItem forwards the complete auditable scoped command', async () => {
   const calls = [];
   const controller = new ReconciliationController(
     createRepository({
@@ -134,7 +167,7 @@ test('resolveItem forwards the complete auditable command', async () => {
     actorType: 'SERVICE_ACCOUNT',
   };
 
-  const result = await controller.resolveItem(itemId, body);
+  const result = await controller.resolveItem(itemId, organizationId, body);
   assert.equal(result.status, 'IGNORED');
-  assert.deepEqual(calls, [{ itemId, ...body }]);
+  assert.deepEqual(calls, [{ organizationId, itemId, ...body }]);
 });
