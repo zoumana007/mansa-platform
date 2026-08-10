@@ -8,6 +8,7 @@ import type {
 } from '@mansa/contracts/access-mobility-api';
 import type { AccessCredential, AccessDecision, AccessEntitlement, AccessRequest } from '@mansa/contracts/access-mobility';
 
+import { OperationIdempotencyRegistry } from '../idempotency/operation-idempotency.registry';
 import { AccessManagementRepository } from './access-management.repository';
 import { PrismaAccessRepository } from './access.repository';
 
@@ -16,6 +17,7 @@ export class AccessService {
   public constructor(
     private readonly repository: PrismaAccessRepository,
     private readonly management: AccessManagementRepository,
+    private readonly idempotency: OperationIdempotencyRegistry,
   ) {}
 
   public async createCredential(command: CreateAccessCredentialCommand): Promise<AccessCredential> {
@@ -23,7 +25,22 @@ export class AccessService {
   }
 
   public async updateCredentialStatus(command: UpdateAccessCredentialStatusCommand): Promise<AccessCredential> {
-    return this.management.updateCredentialStatus(command);
+    return this.idempotency.execute({
+      scope: 'ACCESS_CREDENTIAL_STATUS',
+      organizationId: command.organizationId,
+      idempotencyKey: command.idempotencyKey,
+      correlationId: command.correlationId,
+      payload: {
+        credentialId: command.credentialId,
+        targetStatus: command.targetStatus,
+        reason: command.reason,
+      },
+      operation: () => this.management.updateCredentialStatus(command),
+      recover: async () => {
+        const current = await this.repository.getCredential(command.organizationId, command.credentialId);
+        return current?.status === command.targetStatus ? current : undefined;
+      },
+    });
   }
 
   public async getCredential(organizationId: string, credentialId: string): Promise<AccessCredential | undefined> {
@@ -42,7 +59,22 @@ export class AccessService {
   }
 
   public async updateEntitlementStatus(command: UpdateAccessEntitlementStatusCommand): Promise<AccessEntitlement> {
-    return this.management.updateEntitlementStatus(command);
+    return this.idempotency.execute({
+      scope: 'ACCESS_ENTITLEMENT_STATUS',
+      organizationId: command.organizationId,
+      idempotencyKey: command.idempotencyKey,
+      correlationId: command.correlationId,
+      payload: {
+        entitlementId: command.entitlementId,
+        targetStatus: command.targetStatus,
+        reason: command.reason,
+      },
+      operation: () => this.management.updateEntitlementStatus(command),
+      recover: async () => {
+        const current = await this.repository.getEntitlement(command.organizationId, command.entitlementId);
+        return current?.status === command.targetStatus ? current : undefined;
+      },
+    });
   }
 
   public async getEntitlement(organizationId: string, entitlementId: string): Promise<AccessEntitlement | undefined> {
