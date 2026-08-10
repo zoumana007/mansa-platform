@@ -11,19 +11,19 @@ import type {
 } from './access-mobility.js';
 
 export const ACCESS_MOBILITY_API_ROUTES = {
-  createCredential: '/v1/access/credentials',
-  getCredential: '/v1/access/credentials/:credentialId',
-  listCredentials: '/v1/access/credentials',
-  createEntitlement: '/v1/access/entitlements',
-  getEntitlement: '/v1/access/entitlements/:entitlementId',
-  listEntitlements: '/v1/access/entitlements',
-  evaluateAccess: '/v1/access/evaluate',
-  recordUsage: '/v1/access/usages',
-  getServiceAvailability: '/v1/access/locations/:locationId/availability',
-  updateServiceAvailability: '/v1/access/locations/:locationId/availability',
-  getTerminalProfile: '/v1/access/terminals/:terminalId/profile',
-  getTerminalDisplayState: '/v1/access/terminals/:terminalId/display-state',
-  recordCashValidation: '/v1/access/terminals/:terminalId/cash-validations',
+  createCredential: '/v1/internal/access/credentials',
+  getCredential: '/v1/internal/access/credentials/:credentialId',
+  listCredentials: '/v1/internal/access/credentials',
+  createEntitlement: '/v1/internal/access/entitlements',
+  getEntitlement: '/v1/internal/access/entitlements/:entitlementId',
+  listEntitlements: '/v1/internal/access/entitlements',
+  evaluateAccess: '/v1/internal/access/evaluate',
+  recordUsage: '/v1/internal/access/usages',
+  getServiceAvailability: '/v1/internal/access/locations/:locationId/availability',
+  updateServiceAvailability: '/v1/internal/access/locations/:locationId/availability',
+  getTerminalProfile: '/v1/internal/access/terminals/:terminalId/profile',
+  getTerminalDisplayState: '/v1/internal/access/terminals/:terminalId/display-state',
+  recordCashValidation: '/v1/internal/access/terminals/:terminalId/cash-validations',
 } as const;
 
 export const ACCESS_MOBILITY_API_METHODS = {
