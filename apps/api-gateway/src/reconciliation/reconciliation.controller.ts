@@ -10,8 +10,19 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import {
+  RECONCILIATION_BATCH_STATUSES,
+} from '@mansa/contracts/reconciliation-api';
+import {
+  RECONCILIATION_MISMATCH_REASONS,
+  RECONCILIATION_STATUSES,
+} from '@mansa/contracts/reconciliation';
 
 import { InternalServiceGuard } from '../internal-service.guard';
+import {
+  presentReconciliationBatch,
+  presentReconciliationItem,
+} from './reconciliation.presenter';
 import { ReconciliationRepository } from './reconciliation.repository';
 
 function parseLimit(value: string | undefined, fallback: number, max: number): number {
@@ -28,6 +39,30 @@ function requireOrganizationId(value: string | undefined): string {
   const organizationId = value?.trim();
   if (!organizationId) throw new BadRequestException('organizationId is required');
   return organizationId;
+}
+
+function optionalText(value: string | undefined): string | undefined {
+  const normalized = value?.trim();
+  return normalized ? normalized : undefined;
+}
+
+function parseDate(value: string | undefined, field: string): Date | undefined {
+  if (value === undefined) return undefined;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) throw new BadRequestException(`${field} must be a valid date`);
+  return date;
+}
+
+function parseEnum<T extends string>(
+  value: string | undefined,
+  field: string,
+  allowed: readonly T[],
+): T | undefined {
+  if (value === undefined) return undefined;
+  if (!allowed.includes(value as T)) {
+    throw new BadRequestException(`${field} has an unsupported value`);
+  }
+  return value as T;
 }
 
 interface ResolveItemBody {
@@ -50,13 +85,28 @@ export class ReconciliationController {
     @Query('organizationId') organizationId?: string,
     @Query('limit') limit?: string,
     @Query('cursor') cursor?: string,
+    @Query('providerId') providerId?: string,
+    @Query('status') status?: string,
+    @Query('periodStartFrom') periodStartFrom?: string,
+    @Query('periodEndTo') periodEndTo?: string,
   ) {
     try {
-      return await this.repository.listBatches(
+      const result = await this.repository.listBatches(
         requireOrganizationId(organizationId),
         parseLimit(limit, 50, 100),
         cursor,
+        {
+          ...(optionalText(providerId) ? { providerId: optionalText(providerId) } : {}),
+          ...(status
+            ? { status: parseEnum(status, 'status', RECONCILIATION_BATCH_STATUSES) }
+            : {}),
+          ...(periodStartFrom
+            ? { periodStartFrom: parseDate(periodStartFrom, 'periodStartFrom') }
+            : {}),
+          ...(periodEndTo ? { periodEndTo: parseDate(periodEndTo, 'periodEndTo') } : {}),
+        },
       );
+      return { data: result.data.map(presentReconciliationBatch), page: result.page };
     } catch (error) {
       if (error instanceof Error && error.message === 'invalid reconciliation cursor') {
         throw new BadRequestException(error.message);
@@ -72,7 +122,7 @@ export class ReconciliationController {
   ) {
     const batch = await this.repository.getBatch(requireOrganizationId(organizationId), batchId);
     if (batch === null) throw new NotFoundException('Reconciliation batch not found.');
-    return batch;
+    return presentReconciliationBatch(batch);
   }
 
   @Get('batches/:batchId/items')
@@ -81,17 +131,46 @@ export class ReconciliationController {
     @Query('organizationId') organizationId?: string,
     @Query('limit') limit?: string,
     @Query('cursor') cursor?: string,
+    @Query('providerId') providerId?: string,
+    @Query('status') status?: string,
+    @Query('mismatchReason') mismatchReason?: string,
+    @Query('internalReference') internalReference?: string,
+    @Query('providerReference') providerReference?: string,
+    @Query('createdFrom') createdFrom?: string,
+    @Query('createdTo') createdTo?: string,
   ) {
     const scope = requireOrganizationId(organizationId);
     const batch = await this.repository.getBatch(scope, batchId);
     if (batch === null) throw new NotFoundException('Reconciliation batch not found.');
     try {
-      return await this.repository.listItems(
+      const result = await this.repository.listItems(
         scope,
         batchId,
         parseLimit(limit, 100, 500),
         cursor,
+        {
+          ...(optionalText(providerId) ? { providerId: optionalText(providerId) } : {}),
+          ...(status ? { status: parseEnum(status, 'status', RECONCILIATION_STATUSES) } : {}),
+          ...(mismatchReason
+            ? {
+                mismatchReason: parseEnum(
+                  mismatchReason,
+                  'mismatchReason',
+                  RECONCILIATION_MISMATCH_REASONS,
+                ),
+              }
+            : {}),
+          ...(optionalText(internalReference)
+            ? { internalReference: optionalText(internalReference) }
+            : {}),
+          ...(optionalText(providerReference)
+            ? { providerReference: optionalText(providerReference) }
+            : {}),
+          ...(createdFrom ? { createdFrom: parseDate(createdFrom, 'createdFrom') } : {}),
+          ...(createdTo ? { createdTo: parseDate(createdTo, 'createdTo') } : {}),
+        },
       );
+      return { data: result.data.map(presentReconciliationItem), page: result.page };
     } catch (error) {
       if (error instanceof Error && error.message === 'invalid reconciliation cursor') {
         throw new BadRequestException(error.message);
@@ -107,7 +186,7 @@ export class ReconciliationController {
   ) {
     const item = await this.repository.getItem(requireOrganizationId(organizationId), itemId);
     if (item === null) throw new NotFoundException('Reconciliation item not found.');
-    return item;
+    return presentReconciliationItem(item);
   }
 
   @Post('items/:itemId/resolve')
@@ -120,7 +199,7 @@ export class ReconciliationController {
       throw new BadRequestException('status must be RESOLVED or IGNORED');
     }
     try {
-      return await this.repository.resolveItem({
+      const item = await this.repository.resolveItem({
         organizationId: requireOrganizationId(organizationId),
         itemId,
         status: body.status,
@@ -131,6 +210,7 @@ export class ReconciliationController {
         actorId: body.actorId ?? '',
         actorType: body.actorType ?? '',
       });
+      return presentReconciliationItem(item);
     } catch (error) {
       if (error instanceof Error) {
         if (error.message === 'reconciliation item not found') {
