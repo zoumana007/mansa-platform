@@ -5,6 +5,7 @@ import {
   Get,
   NotFoundException,
   Param,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -12,8 +13,16 @@ import {
 import type {
   CreateAccessCredentialCommand,
   CreateAccessEntitlementCommand,
+  UpdateAccessCredentialStatusCommand,
+  UpdateAccessEntitlementStatusCommand,
 } from '@mansa/contracts/access-mobility-api';
-import type { AccessCredential, AccessEntitlement, AccessRequest } from '@mansa/contracts/access-mobility';
+import type {
+  AccessCredential,
+  AccessCredentialStatus,
+  AccessEntitlement,
+  AccessEntitlementStatus,
+  AccessRequest,
+} from '@mansa/contracts/access-mobility';
 
 import { InternalServiceGuard } from '../internal-service.guard';
 import { AccessService } from './access.service';
@@ -22,7 +31,7 @@ function requireString(name: string, value: unknown): string {
   if (typeof value !== 'string' || value.trim().length === 0) {
     throw new BadRequestException(`${name} is required`);
   }
-  return value;
+  return value.trim();
 }
 
 function optionalLimit(value: unknown): number | undefined {
@@ -79,6 +88,28 @@ export class AccessController {
     }
   }
 
+  @Patch('credentials/:credentialId/status')
+  public async updateCredentialStatus(
+    @Param('credentialId') credentialId: string,
+    @Body() body: Partial<UpdateAccessCredentialStatusCommand>,
+  ) {
+    const command: UpdateAccessCredentialStatusCommand = {
+      credentialId: requireString('credentialId', credentialId),
+      organizationId: requireString('organizationId', body.organizationId),
+      targetStatus: requireString('targetStatus', body.targetStatus) as AccessCredentialStatus,
+      reason: requireString('reason', body.reason),
+      idempotencyKey: requireString('idempotencyKey', body.idempotencyKey),
+      correlationId: requireString('correlationId', body.correlationId),
+    };
+    try {
+      return await this.service.updateCredentialStatus(command);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('not found')) throw new NotFoundException(error.message);
+      if (error instanceof Error) throw new BadRequestException(error.message);
+      throw error;
+    }
+  }
+
   @Get('credentials/:credentialId')
   public async getCredential(
     @Param('credentialId') credentialId: string,
@@ -99,11 +130,12 @@ export class AccessController {
     @Query('limit') limitValue?: string,
   ) {
     const organizationId = requireString('organizationId', organizationIdValue);
+    const limit = optionalLimit(limitValue);
     return this.service.listCredentials(organizationId, {
       ...(subjectId ? { subjectId } : {}),
       ...(status ? { status } : {}),
       ...(credentialType ? { credentialType } : {}),
-      ...(optionalLimit(limitValue) === undefined ? {} : { limit: optionalLimit(limitValue) }),
+      ...(limit === undefined ? {} : { limit }),
     });
   }
 
@@ -117,6 +149,28 @@ export class AccessController {
     try {
       return await this.service.createEntitlement(command);
     } catch (error) {
+      if (error instanceof Error) throw new BadRequestException(error.message);
+      throw error;
+    }
+  }
+
+  @Patch('entitlements/:entitlementId/status')
+  public async updateEntitlementStatus(
+    @Param('entitlementId') entitlementId: string,
+    @Body() body: Partial<UpdateAccessEntitlementStatusCommand>,
+  ) {
+    const command: UpdateAccessEntitlementStatusCommand = {
+      entitlementId: requireString('entitlementId', entitlementId),
+      organizationId: requireString('organizationId', body.organizationId),
+      targetStatus: requireString('targetStatus', body.targetStatus) as AccessEntitlementStatus,
+      reason: requireString('reason', body.reason),
+      idempotencyKey: requireString('idempotencyKey', body.idempotencyKey),
+      correlationId: requireString('correlationId', body.correlationId),
+    };
+    try {
+      return await this.service.updateEntitlementStatus(command);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('not found')) throw new NotFoundException(error.message);
       if (error instanceof Error) throw new BadRequestException(error.message);
       throw error;
     }
@@ -142,11 +196,12 @@ export class AccessController {
     @Query('limit') limitValue?: string,
   ) {
     const organizationId = requireString('organizationId', organizationIdValue);
+    const limit = optionalLimit(limitValue);
     return this.service.listEntitlements(organizationId, {
       ...(subjectId ? { subjectId } : {}),
       ...(useCase ? { useCase } : {}),
       ...(status ? { status } : {}),
-      ...(optionalLimit(limitValue) === undefined ? {} : { limit: optionalLimit(limitValue) }),
+      ...(limit === undefined ? {} : { limit }),
     });
   }
 
