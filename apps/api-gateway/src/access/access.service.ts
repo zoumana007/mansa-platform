@@ -3,6 +3,8 @@ import { processAccessRequest } from '@mansa/contracts/access-application-servic
 import type {
   CreateAccessCredentialCommand,
   CreateAccessEntitlementCommand,
+  ReplaceAccessCredentialCommand,
+  ReplaceAccessCredentialResult,
   UpdateAccessCredentialStatusCommand,
   UpdateAccessEntitlementStatusCommand,
 } from '@mansa/contracts/access-mobility-api';
@@ -39,6 +41,30 @@ export class AccessService {
       recover: async () => {
         const current = await this.repository.getCredential(command.organizationId, command.credentialId);
         return current?.status === command.targetStatus ? current : undefined;
+      },
+    });
+  }
+
+  public async replaceCredential(command: ReplaceAccessCredentialCommand): Promise<ReplaceAccessCredentialResult> {
+    return this.idempotency.execute({
+      scope: 'ACCESS_CREDENTIAL_REPLACEMENT',
+      organizationId: command.organizationId,
+      idempotencyKey: command.idempotencyKey,
+      correlationId: command.correlationId,
+      payload: {
+        credentialId: command.credentialId,
+        replacement: command.replacement,
+        reason: command.reason,
+      },
+      operation: () => this.management.replaceCredential(command),
+      recover: async () => {
+        const revokedCredential = await this.repository.getCredential(command.organizationId, command.credentialId);
+        const replacementCredential = await this.repository.getCredential(
+          command.organizationId,
+          command.replacement.id,
+        );
+        if (revokedCredential?.status !== 'REVOKED' || replacementCredential === undefined) return undefined;
+        return { revokedCredential, replacementCredential };
       },
     });
   }
