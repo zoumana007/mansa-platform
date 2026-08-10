@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { summarizeReconciliationComparisons } from '@mansa/contracts/reconciliation';
 import { performance } from 'node:perf_hooks';
 
 import { ReconciliationOperationalMonitor } from './reconciliation-operational-monitor';
@@ -66,10 +67,18 @@ export class ReconciliationImportService {
         })),
       });
 
+      const summary = summarizeReconciliationComparisons(
+        prepared.items.map(({ comparison }) => comparison),
+      );
       this.monitor.recordImportSucceeded(
-        prepared.items.length,
+        summary.total,
         new Date(),
         performance.now() - startedMonotonicMs,
+        {
+          matched: summary.matched,
+          mismatched: summary.mismatched,
+          byReason: summary.byReason,
+        },
       );
       return result;
     } catch (error) {
