@@ -15,12 +15,14 @@ export class ReconciliationImportService {
   ) {}
 
   public async importTestProviderSource(
+    organizationId: string,
     source: ProviderReconciliationSource,
     internalRows: readonly InternalReconciliationRow[],
   ) {
     const prepared = this.testProviderAdapter.prepare(source, internalRows);
 
     return this.repository.importBatch({
+      organizationId,
       providerId: prepared.providerId,
       ...(prepared.sourceFileReference === undefined
         ? {}
