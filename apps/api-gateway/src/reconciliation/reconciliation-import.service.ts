@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { performance } from 'node:perf_hooks';
 
 import { ReconciliationOperationalMonitor } from './reconciliation-operational-monitor';
 import { ReconciliationRepository } from './reconciliation.repository';
@@ -21,6 +22,7 @@ export class ReconciliationImportService {
     source: ProviderReconciliationSource,
     internalRows: readonly InternalReconciliationRow[],
   ) {
+    const startedMonotonicMs = performance.now();
     this.monitor.recordImportStarted();
     try {
       const prepared = this.testProviderAdapter.prepare(source, internalRows);
@@ -64,10 +66,14 @@ export class ReconciliationImportService {
         })),
       });
 
-      this.monitor.recordImportSucceeded(prepared.items.length);
+      this.monitor.recordImportSucceeded(
+        prepared.items.length,
+        new Date(),
+        performance.now() - startedMonotonicMs,
+      );
       return result;
     } catch (error) {
-      this.monitor.recordImportFailed();
+      this.monitor.recordImportFailed(new Date(), performance.now() - startedMonotonicMs);
       throw error;
     }
   }
