@@ -23,6 +23,7 @@ export interface ReconciliationImportItemInput {
 }
 
 export interface CreateReconciliationBatchInput {
+  organizationId: string;
   providerId: string;
   sourceFileReference?: string;
   sourceFingerprint: string;
@@ -42,6 +43,7 @@ export interface ReconciliationBatchImportResult {
 }
 
 export interface ResolveReconciliationItemInput {
+  organizationId: string;
   itemId: string;
   status: 'RESOLVED' | 'IGNORED';
   resolutionNote: string;
@@ -53,6 +55,12 @@ export interface ResolveReconciliationItemInput {
 }
 
 type CursorPayload = { createdAt: string; id: string };
+
+function requireOrganizationId(organizationId: string): string {
+  const normalized = organizationId.trim();
+  if (!normalized) throw new Error('organizationId is required');
+  return normalized;
+}
 
 function encodeCursor(createdAt: Date, id: string): string {
   return Buffer.from(
@@ -78,6 +86,7 @@ function decodeCursor(cursor: string | undefined): { createdAt: Date; id: string
 }
 
 function validateInput(input: CreateReconciliationBatchInput): void {
+  requireOrganizationId(input.organizationId);
   if (!input.providerId.trim()) throw new Error('providerId is required');
   if (!input.sourceFingerprint.trim()) throw new Error('sourceFingerprint is required');
   if (input.periodEnd.getTime() < input.periodStart.getTime()) {
@@ -111,11 +120,12 @@ export class ReconciliationRepository {
   public constructor(private readonly prisma: PrismaService) {}
 
   private async getImportSnapshot(
+    organizationId: string,
     batchId: string,
     reused: boolean,
   ): Promise<ReconciliationBatchImportResult> {
-    const snapshot = await this.prisma.reconciliationBatch.findUniqueOrThrow({
-      where: { id: batchId },
+    const snapshot = await this.prisma.reconciliationBatch.findFirstOrThrow({
+      where: { id: batchId, organizationId },
       select: {
         id: true,
         status: true,
@@ -127,9 +137,20 @@ export class ReconciliationRepository {
     return { ...snapshot, batchId: snapshot.id, reused };
   }
 
-  public async findBatchBySource(providerId: string, sourceFingerprint: string) {
+  public async findBatchBySource(
+    organizationId: string,
+    providerId: string,
+    sourceFingerprint: string,
+  ) {
+    const scope = requireOrganizationId(organizationId);
     return this.prisma.reconciliationBatch.findUnique({
-      where: { providerId_sourceFingerprint: { providerId, sourceFingerprint } },
+      where: {
+        organizationId_providerId_sourceFingerprint: {
+          organizationId: scope,
+          providerId,
+          sourceFingerprint,
+        },
+      },
       select: { id: true, status: true },
     });
   }
@@ -138,10 +159,15 @@ export class ReconciliationRepository {
     input: CreateReconciliationBatchInput,
   ): Promise<ReconciliationBatchImportResult> {
     validateInput(input);
+    const organizationId = requireOrganizationId(input.organizationId);
     const providerId = input.providerId.trim();
     const sourceFingerprint = input.sourceFingerprint.trim();
-    const existing = await this.findBatchBySource(providerId, sourceFingerprint);
-    if (existing) return this.getImportSnapshot(existing.id, true);
+    const existing = await this.findBatchBySource(
+      organizationId,
+      providerId,
+      sourceFingerprint,
+    );
+    if (existing) return this.getImportSnapshot(organizationId, existing.id, true);
 
     const matchedItems = input.items.filter((item) => item.status === 'MATCHED').length;
     const mismatchedItems = input.items.filter(
@@ -154,6 +180,7 @@ export class ReconciliationRepository {
       return await this.prisma.$transaction(async (tx) => {
         const batch = await tx.reconciliationBatch.create({
           data: {
+            organizationId,
             providerId,
             ...(input.sourceFileReference
               ? { sourceFileReference: input.sourceFileReference.trim() }
@@ -173,6 +200,7 @@ export class ReconciliationRepository {
         if (input.items.length > 0) {
           await tx.reconciliationItem.createMany({
             data: input.items.map((item) => ({
+              organizationId,
               batchId: batch.id,
               ...(item.internalReference
                 ? { internalReference: item.internalReference.trim() }
@@ -231,35 +259,45 @@ export class ReconciliationRepository {
       });
     } catch (error) {
       if (isUniqueConstraintError(error)) {
-        const concurrent = await this.findBatchBySource(providerId, sourceFingerprint);
-        if (concurrent) return this.getImportSnapshot(concurrent.id, true);
+        const concurrent = await this.findBatchBySource(
+          organizationId,
+          providerId,
+          sourceFingerprint,
+        );
+        if (concurrent) return this.getImportSnapshot(organizationId, concurrent.id, true);
       }
       throw error;
     }
   }
 
-  public async getBatch(batchId: string) {
-    return this.prisma.reconciliationBatch.findUnique({ where: { id: batchId } });
+  public async getBatch(organizationId: string, batchId: string) {
+    return this.prisma.reconciliationBatch.findFirst({
+      where: { id: batchId, organizationId: requireOrganizationId(organizationId) },
+    });
   }
 
-  public async getItem(itemId: string) {
-    return this.prisma.reconciliationItem.findUnique({ where: { id: itemId } });
+  public async getItem(organizationId: string, itemId: string) {
+    return this.prisma.reconciliationItem.findFirst({
+      where: { id: itemId, organizationId: requireOrganizationId(organizationId) },
+    });
   }
 
-  public async listBatches(take = 50, cursor?: string) {
+  public async listBatches(organizationId: string, take = 50, cursor?: string) {
+    const scope = requireOrganizationId(organizationId);
     const boundedTake = Math.max(1, Math.min(take, 100));
     const decoded = decodeCursor(cursor);
     const rows = await this.prisma.reconciliationBatch.findMany({
-      ...(decoded
-        ? {
-            where: {
+      where: {
+        organizationId: scope,
+        ...(decoded
+          ? {
               OR: [
                 { createdAt: { lt: decoded.createdAt } },
                 { createdAt: decoded.createdAt, id: { lt: decoded.id } },
               ],
-            },
-          }
-        : {}),
+            }
+          : {}),
+      },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: boundedTake + 1,
     });
@@ -275,11 +313,18 @@ export class ReconciliationRepository {
     };
   }
 
-  public async listItems(batchId: string, take = 100, cursor?: string) {
+  public async listItems(
+    organizationId: string,
+    batchId: string,
+    take = 100,
+    cursor?: string,
+  ) {
+    const scope = requireOrganizationId(organizationId);
     const boundedTake = Math.max(1, Math.min(take, 500));
     const decoded = decodeCursor(cursor);
     const rows = await this.prisma.reconciliationItem.findMany({
       where: {
+        organizationId: scope,
         batchId,
         ...(decoded
           ? {
@@ -306,6 +351,7 @@ export class ReconciliationRepository {
   }
 
   public async resolveItem(input: ResolveReconciliationItemInput) {
+    const organizationId = requireOrganizationId(input.organizationId);
     const resolutionNote = input.resolutionNote.trim();
     const reasonCode = input.reasonCode.trim();
     const idempotencyKey = input.idempotencyKey.trim();
@@ -320,7 +366,12 @@ export class ReconciliationRepository {
 
     return this.prisma.$transaction(async (tx) => {
       const replay = await tx.reconciliationItem.findUnique({
-        where: { resolutionIdempotencyKey: idempotencyKey },
+        where: {
+          organizationId_resolutionIdempotencyKey: {
+            organizationId,
+            resolutionIdempotencyKey: idempotencyKey,
+          },
+        },
       });
       if (replay) {
         if (replay.id !== input.itemId || replay.status !== input.status) {
@@ -329,7 +380,9 @@ export class ReconciliationRepository {
         return replay;
       }
 
-      const current = await tx.reconciliationItem.findUnique({ where: { id: input.itemId } });
+      const current = await tx.reconciliationItem.findFirst({
+        where: { id: input.itemId, organizationId },
+      });
       if (!current) throw new Error('reconciliation item not found');
       if (current.status !== 'MISMATCHED' && current.status !== 'PARTIALLY_MATCHED') {
         throw new Error('only unresolved mismatches can be resolved or ignored');
@@ -346,8 +399,8 @@ export class ReconciliationRepository {
           resolutionIdempotencyKey: idempotencyKey,
         },
       });
-      await tx.reconciliationBatch.update({
-        where: { id: current.batchId },
+      await tx.reconciliationBatch.updateMany({
+        where: { id: current.batchId, organizationId },
         data:
           input.status === 'RESOLVED'
             ? { resolvedItems: { increment: 1 } }
@@ -366,6 +419,7 @@ export class ReconciliationRepository {
           resourceId: input.itemId,
           reason: reasonCode,
           metadata: {
+            organizationId,
             resolutionNote,
             batchId: current.batchId,
             mismatchReason: current.mismatchReason,
