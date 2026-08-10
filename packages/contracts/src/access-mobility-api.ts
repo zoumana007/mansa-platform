@@ -17,6 +17,7 @@ export const ACCESS_MOBILITY_API_ROUTES = {
   getCredential: '/v1/internal/access/credentials/:credentialId',
   listCredentials: '/v1/internal/access/credentials',
   updateCredentialStatus: '/v1/internal/access/credentials/:credentialId/status',
+  replaceCredential: '/v1/internal/access/credentials/:credentialId/replacement',
   createEntitlement: '/v1/internal/access/entitlements',
   getEntitlement: '/v1/internal/access/entitlements/:entitlementId',
   listEntitlements: '/v1/internal/access/entitlements',
@@ -35,6 +36,7 @@ export const ACCESS_MOBILITY_API_METHODS = {
   getCredential: 'GET',
   listCredentials: 'GET',
   updateCredentialStatus: 'PATCH',
+  replaceCredential: 'POST',
   createEntitlement: 'POST',
   getEntitlement: 'GET',
   listEntitlements: 'GET',
@@ -83,6 +85,20 @@ export interface UpdateAccessCredentialStatusCommand {
   readonly correlationId: string;
 }
 
+export interface ReplaceAccessCredentialCommand {
+  readonly organizationId: string;
+  readonly credentialId: string;
+  readonly replacement: AccessCredential;
+  readonly reason: string;
+  readonly idempotencyKey: string;
+  readonly correlationId: string;
+}
+
+export interface ReplaceAccessCredentialResult {
+  readonly revokedCredential: AccessCredential;
+  readonly replacementCredential: AccessCredential;
+}
+
 export interface CreateAccessEntitlementCommand {
   readonly entitlement: AccessEntitlement;
   readonly idempotencyKey: string;
@@ -112,59 +128,20 @@ export interface RecordAccessCashValidationCommand {
 }
 
 export interface AccessMobilityApiContract {
-  readonly createCredential: {
-    readonly request: CreateAccessCredentialCommand;
-    readonly response: AccessCredential;
-  };
-  readonly getCredential: {
-    readonly response: AccessCredential;
-  };
-  readonly listCredentials: {
-    readonly query: ListAccessCredentialsQuery;
-    readonly response: readonly AccessCredential[];
-  };
-  readonly updateCredentialStatus: {
-    readonly request: UpdateAccessCredentialStatusCommand;
-    readonly response: AccessCredential;
-  };
-  readonly createEntitlement: {
-    readonly request: CreateAccessEntitlementCommand;
-    readonly response: AccessEntitlement;
-  };
-  readonly getEntitlement: {
-    readonly response: AccessEntitlement;
-  };
-  readonly listEntitlements: {
-    readonly query: ListAccessEntitlementsQuery;
-    readonly response: readonly AccessEntitlement[];
-  };
-  readonly updateEntitlementStatus: {
-    readonly request: UpdateAccessEntitlementStatusCommand;
-    readonly response: AccessEntitlement;
-  };
-  readonly evaluateAccess: {
-    readonly request: AccessRequest;
-    readonly response: AccessDecision;
-  };
-  readonly recordUsage: {
-    readonly request: RecordAccessUsageCommand;
-    readonly response: { readonly recorded: true };
-  };
-  readonly getServiceAvailability: {
-    readonly response: AccessServiceAvailability;
-  };
-  readonly updateServiceAvailability: {
-    readonly request: UpdateAccessServiceAvailabilityCommand;
-    readonly response: AccessServiceAvailability;
-  };
-  readonly getTerminalProfile: {
-    readonly response: AccessTerminalProfile;
-  };
-  readonly getTerminalDisplayState: {
-    readonly response: AccessTerminalDisplayState;
-  };
-  readonly recordCashValidation: {
-    readonly request: RecordAccessCashValidationCommand;
-    readonly response: { readonly recorded: true };
-  };
+  readonly createCredential: { readonly request: CreateAccessCredentialCommand; readonly response: AccessCredential };
+  readonly getCredential: { readonly response: AccessCredential };
+  readonly listCredentials: { readonly query: ListAccessCredentialsQuery; readonly response: readonly AccessCredential[] };
+  readonly updateCredentialStatus: { readonly request: UpdateAccessCredentialStatusCommand; readonly response: AccessCredential };
+  readonly replaceCredential: { readonly request: ReplaceAccessCredentialCommand; readonly response: ReplaceAccessCredentialResult };
+  readonly createEntitlement: { readonly request: CreateAccessEntitlementCommand; readonly response: AccessEntitlement };
+  readonly getEntitlement: { readonly response: AccessEntitlement };
+  readonly listEntitlements: { readonly query: ListAccessEntitlementsQuery; readonly response: readonly AccessEntitlement[] };
+  readonly updateEntitlementStatus: { readonly request: UpdateAccessEntitlementStatusCommand; readonly response: AccessEntitlement };
+  readonly evaluateAccess: { readonly request: AccessRequest; readonly response: AccessDecision };
+  readonly recordUsage: { readonly request: RecordAccessUsageCommand; readonly response: { readonly recorded: true } };
+  readonly getServiceAvailability: { readonly response: AccessServiceAvailability };
+  readonly updateServiceAvailability: { readonly request: UpdateAccessServiceAvailabilityCommand; readonly response: AccessServiceAvailability };
+  readonly getTerminalProfile: { readonly response: AccessTerminalProfile };
+  readonly getTerminalDisplayState: { readonly response: AccessTerminalDisplayState };
+  readonly recordCashValidation: { readonly request: RecordAccessCashValidationCommand; readonly response: { readonly recorded: true } };
 }
