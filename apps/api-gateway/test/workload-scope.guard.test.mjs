@@ -44,6 +44,34 @@ test('accepts a workload when every required scope is granted', () => {
   );
 });
 
+test('accepts the dedicated reconciliation metrics scope', () => {
+  const reflector = {
+    getAllAndOverride() {
+      return ['reconciliation:metrics:read'];
+    },
+  };
+  const guard = new WorkloadScopeGuard(reflector);
+
+  assert.equal(
+    guard.canActivate(makeContext(identity(['reconciliation:metrics:read']))),
+    true,
+  );
+});
+
+test('does not let reconciliation read imply metrics access', () => {
+  const reflector = {
+    getAllAndOverride() {
+      return ['reconciliation:metrics:read'];
+    },
+  };
+  const guard = new WorkloadScopeGuard(reflector);
+
+  assert.throws(
+    () => guard.canActivate(makeContext(identity(['reconciliation:read']))),
+    (error) => error instanceof ForbiddenException && error.message === 'Insufficient workload scope.',
+  );
+});
+
 test('rejects a workload missing one required scope', () => {
   const reflector = {
     getAllAndOverride() {
