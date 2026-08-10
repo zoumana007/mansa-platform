@@ -60,18 +60,21 @@ function validateOutcomeSummary(
     throw new Error('outcome matched and mismatched counts must equal itemCount');
   }
 
+  const byReason: Partial<Record<ReconciliationMismatchReason, number>> = {};
   let reasonTotal = 0;
   for (const [reason, rawCount] of Object.entries(outcome.byReason ?? {})) {
     if (!(reason in EMPTY_MISMATCH_REASONS)) {
       throw new Error('outcome contains an unsupported mismatch reason');
     }
-    reasonTotal += requireCount(rawCount, `outcome.byReason.${reason}`);
+    const validatedCount = requireCount(rawCount, `outcome.byReason.${reason}`);
+    reasonTotal += validatedCount;
+    byReason[reason as ReconciliationMismatchReason] = validatedCount;
   }
   if (reasonTotal > mismatched) {
     throw new Error('mismatch reason counts cannot exceed outcome.mismatched');
   }
 
-  return outcome;
+  return { matched, mismatched, byReason };
 }
 
 @Injectable()
