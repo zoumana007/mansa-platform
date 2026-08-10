@@ -3,6 +3,8 @@ import { processAccessRequest } from '@mansa/contracts/access-application-servic
 import type {
   CreateAccessCredentialCommand,
   CreateAccessEntitlementCommand,
+  UpdateAccessCredentialStatusCommand,
+  UpdateAccessEntitlementStatusCommand,
 } from '@mansa/contracts/access-mobility-api';
 import type { AccessCredential, AccessDecision, AccessEntitlement, AccessRequest } from '@mansa/contracts/access-mobility';
 
@@ -20,6 +22,10 @@ export class AccessService {
     return this.management.createCredential(command);
   }
 
+  public async updateCredentialStatus(command: UpdateAccessCredentialStatusCommand): Promise<AccessCredential> {
+    return this.management.updateCredentialStatus(command);
+  }
+
   public async getCredential(organizationId: string, credentialId: string): Promise<AccessCredential | undefined> {
     return this.repository.getCredential(organizationId, credentialId);
   }
@@ -33,6 +39,10 @@ export class AccessService {
 
   public async createEntitlement(command: CreateAccessEntitlementCommand): Promise<AccessEntitlement> {
     return this.management.createEntitlement(command);
+  }
+
+  public async updateEntitlementStatus(command: UpdateAccessEntitlementStatusCommand): Promise<AccessEntitlement> {
+    return this.management.updateEntitlementStatus(command);
   }
 
   public async getEntitlement(organizationId: string, entitlementId: string): Promise<AccessEntitlement | undefined> {
