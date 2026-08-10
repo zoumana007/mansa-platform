@@ -3,10 +3,29 @@ import { Prisma } from '@prisma/client';
 import type {
   CreateAccessCredentialCommand,
   CreateAccessEntitlementCommand,
+  UpdateAccessCredentialStatusCommand,
+  UpdateAccessEntitlementStatusCommand,
 } from '@mansa/contracts/access-mobility-api';
 import type { AccessCredential, AccessEntitlement } from '@mansa/contracts/access-mobility';
 
 import { PrismaService } from '../prisma.service';
+
+const CREDENTIAL_TRANSITIONS: Readonly<Record<AccessCredential['status'], readonly AccessCredential['status'][]>> = {
+  PENDING: ['ACTIVE', 'SUSPENDED', 'REVOKED'],
+  ACTIVE: ['SUSPENDED', 'REVOKED', 'EXPIRED'],
+  SUSPENDED: ['ACTIVE', 'REVOKED', 'EXPIRED'],
+  REVOKED: [],
+  EXPIRED: [],
+};
+
+const ENTITLEMENT_TRANSITIONS: Readonly<Record<AccessEntitlement['status'], readonly AccessEntitlement['status'][]>> = {
+  DRAFT: ['ACTIVE', 'CANCELLED'],
+  ACTIVE: ['SUSPENDED', 'EXPIRED', 'CANCELLED', 'TERMINATED'],
+  SUSPENDED: ['ACTIVE', 'EXPIRED', 'CANCELLED', 'TERMINATED'],
+  EXPIRED: [],
+  CANCELLED: [],
+  TERMINATED: [],
+};
 
 function normalizeRequired(name: string, value: string): string {
   const normalized = value.trim();
@@ -106,6 +125,20 @@ function isUniqueConstraint(error: unknown): boolean {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
 }
 
+function assertCredentialTransition(current: AccessCredential['status'], target: AccessCredential['status']): void {
+  if (current === target) return;
+  if (!CREDENTIAL_TRANSITIONS[current].includes(target)) {
+    throw new Error(`credential status transition ${current} -> ${target} is not allowed`);
+  }
+}
+
+function assertEntitlementTransition(current: AccessEntitlement['status'], target: AccessEntitlement['status']): void {
+  if (current === target) return;
+  if (!ENTITLEMENT_TRANSITIONS[current].includes(target)) {
+    throw new Error(`entitlement status transition ${current} -> ${target} is not allowed`);
+  }
+}
+
 @Injectable()
 export class AccessManagementRepository {
   public constructor(private readonly prisma: PrismaService) {}
@@ -123,12 +156,7 @@ export class AccessManagementRepository {
     if (validFrom && validUntil && validUntil < validFrom) throw new Error('credential.validUntil must not precede validFrom');
 
     const existing = await this.prisma.accessCredentialRecord.findFirst({
-      where: {
-        OR: [
-          { id },
-          { organizationId, credentialType: credential.credentialType, publicReference },
-        ],
-      },
+      where: { OR: [{ id }, { organizationId, credentialType: credential.credentialType, publicReference }] },
     });
     if (existing) {
       if (existing.organizationId !== organizationId || existing.id !== id) {
@@ -177,6 +205,40 @@ export class AccessManagementRepository {
       }
       throw error;
     }
+  }
+
+  public async updateCredentialStatus(command: UpdateAccessCredentialStatusCommand): Promise<AccessCredential> {
+    const organizationId = normalizeRequired('organizationId', command.organizationId);
+    const credentialId = normalizeRequired('credentialId', command.credentialId);
+    const reason = normalizeRequired('reason', command.reason);
+    const idempotencyKey = normalizeRequired('idempotencyKey', command.idempotencyKey);
+    const correlationId = normalizeRequired('correlationId', command.correlationId);
+
+    return this.prisma.$transaction(async (tx) => {
+      const current = await tx.accessCredentialRecord.findUnique({ where: { id: credentialId } });
+      if (!current || current.organizationId !== organizationId) throw new Error('credential not found for tenant');
+      const currentStatus = current.status as AccessCredential['status'];
+      assertCredentialTransition(currentStatus, command.targetStatus);
+      if (currentStatus === command.targetStatus) return credentialFromRow(current);
+
+      const updated = await tx.accessCredentialRecord.update({
+        where: { id: credentialId },
+        data: { status: command.targetStatus },
+      });
+      await tx.operationalAuditLog.create({
+        data: {
+          correlationId,
+          actorId: 'internal-service',
+          actorType: 'SERVICE',
+          action: 'ACCESS_CREDENTIAL_STATUS_CHANGED',
+          resourceType: 'AccessCredential',
+          resourceId: credentialId,
+          reason,
+          metadata: { organizationId, previousStatus: currentStatus, targetStatus: command.targetStatus, idempotencyKey },
+        },
+      });
+      return credentialFromRow(updated);
+    });
   }
 
   public async createEntitlement(command: CreateAccessEntitlementCommand): Promise<AccessEntitlement> {
@@ -244,5 +306,39 @@ export class AccessManagementRepository {
       }
       throw error;
     }
+  }
+
+  public async updateEntitlementStatus(command: UpdateAccessEntitlementStatusCommand): Promise<AccessEntitlement> {
+    const organizationId = normalizeRequired('organizationId', command.organizationId);
+    const entitlementId = normalizeRequired('entitlementId', command.entitlementId);
+    const reason = normalizeRequired('reason', command.reason);
+    const idempotencyKey = normalizeRequired('idempotencyKey', command.idempotencyKey);
+    const correlationId = normalizeRequired('correlationId', command.correlationId);
+
+    return this.prisma.$transaction(async (tx) => {
+      const current = await tx.accessEntitlementRecord.findUnique({ where: { id: entitlementId } });
+      if (!current || current.organizationId !== organizationId) throw new Error('entitlement not found for tenant');
+      const currentStatus = current.status as AccessEntitlement['status'];
+      assertEntitlementTransition(currentStatus, command.targetStatus);
+      if (currentStatus === command.targetStatus) return entitlementFromRow(current);
+
+      const updated = await tx.accessEntitlementRecord.update({
+        where: { id: entitlementId },
+        data: { status: command.targetStatus },
+      });
+      await tx.operationalAuditLog.create({
+        data: {
+          correlationId,
+          actorId: 'internal-service',
+          actorType: 'SERVICE',
+          action: 'ACCESS_ENTITLEMENT_STATUS_CHANGED',
+          resourceType: 'AccessEntitlement',
+          resourceId: entitlementId,
+          reason,
+          metadata: { organizationId, previousStatus: currentStatus, targetStatus: command.targetStatus, idempotencyKey },
+        },
+      });
+      return entitlementFromRow(updated);
+    });
   }
 }
