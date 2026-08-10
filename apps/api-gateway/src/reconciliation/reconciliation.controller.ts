@@ -8,17 +8,23 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
-import {
-  RECONCILIATION_BATCH_STATUSES,
-} from '@mansa/contracts/reconciliation-api';
+import { RECONCILIATION_BATCH_STATUSES } from '@mansa/contracts/reconciliation-api';
 import {
   RECONCILIATION_MISMATCH_REASONS,
   RECONCILIATION_STATUSES,
 } from '@mansa/contracts/reconciliation';
 
-import { InternalServiceGuard } from '../internal-service.guard';
+import {
+  WorkloadIdentityGuard,
+  type WorkloadAuthenticatedRequest,
+} from '../workload-identity.guard';
+import {
+  RequireWorkloadScopes,
+  WorkloadScopeGuard,
+} from '../workload-scope.guard';
 import {
   presentReconciliationBatch,
   presentReconciliationItem,
@@ -35,10 +41,11 @@ function parseLimit(value: string | undefined, fallback: number, max: number): n
   return parsed;
 }
 
-function requireOrganizationId(value: string | undefined): string {
-  const organizationId = value?.trim();
-  if (!organizationId) throw new BadRequestException('organizationId is required');
-  return organizationId;
+function requireWorkloadIdentity(request: WorkloadAuthenticatedRequest) {
+  if (!request.workloadIdentity) {
+    throw new BadRequestException('Authenticated workload context is required.');
+  }
+  return request.workloadIdentity;
 }
 
 function optionalText(value: string | undefined): string | undefined {
@@ -71,18 +78,17 @@ interface ResolveItemBody {
   reasonCode?: string;
   idempotencyKey?: string;
   correlationId?: string;
-  actorId?: string;
-  actorType?: string;
 }
 
-@UseGuards(InternalServiceGuard)
+@UseGuards(WorkloadIdentityGuard, WorkloadScopeGuard)
 @Controller({ path: 'internal/reconciliation', version: '1' })
 export class ReconciliationController {
   public constructor(private readonly repository: ReconciliationRepository) {}
 
   @Get('batches')
+  @RequireWorkloadScopes('reconciliation:read')
   public async listBatches(
-    @Query('organizationId') organizationId?: string,
+    @Req() request: WorkloadAuthenticatedRequest,
     @Query('limit') limit?: string,
     @Query('cursor') cursor?: string,
     @Query('providerId') providerId?: string,
@@ -91,8 +97,9 @@ export class ReconciliationController {
     @Query('periodEndTo') periodEndTo?: string,
   ) {
     try {
+      const identity = requireWorkloadIdentity(request);
       const result = await this.repository.listBatches(
-        requireOrganizationId(organizationId),
+        identity.organizationId,
         parseLimit(limit, 50, 100),
         cursor,
         {
@@ -116,19 +123,22 @@ export class ReconciliationController {
   }
 
   @Get('batches/:batchId')
+  @RequireWorkloadScopes('reconciliation:read')
   public async getBatch(
+    @Req() request: WorkloadAuthenticatedRequest,
     @Param('batchId', new ParseUUIDPipe({ version: '4' })) batchId: string,
-    @Query('organizationId') organizationId?: string,
   ) {
-    const batch = await this.repository.getBatch(requireOrganizationId(organizationId), batchId);
+    const identity = requireWorkloadIdentity(request);
+    const batch = await this.repository.getBatch(identity.organizationId, batchId);
     if (batch === null) throw new NotFoundException('Reconciliation batch not found.');
     return presentReconciliationBatch(batch);
   }
 
   @Get('batches/:batchId/items')
+  @RequireWorkloadScopes('reconciliation:read')
   public async listItems(
+    @Req() request: WorkloadAuthenticatedRequest,
     @Param('batchId', new ParseUUIDPipe({ version: '4' })) batchId: string,
-    @Query('organizationId') organizationId?: string,
     @Query('limit') limit?: string,
     @Query('cursor') cursor?: string,
     @Query('providerId') providerId?: string,
@@ -139,7 +149,8 @@ export class ReconciliationController {
     @Query('createdFrom') createdFrom?: string,
     @Query('createdTo') createdTo?: string,
   ) {
-    const scope = requireOrganizationId(organizationId);
+    const identity = requireWorkloadIdentity(request);
+    const scope = identity.organizationId;
     const batch = await this.repository.getBatch(scope, batchId);
     if (batch === null) throw new NotFoundException('Reconciliation batch not found.');
     try {
@@ -180,35 +191,39 @@ export class ReconciliationController {
   }
 
   @Get('items/:itemId')
+  @RequireWorkloadScopes('reconciliation:read')
   public async getItem(
+    @Req() request: WorkloadAuthenticatedRequest,
     @Param('itemId', new ParseUUIDPipe({ version: '4' })) itemId: string,
-    @Query('organizationId') organizationId?: string,
   ) {
-    const item = await this.repository.getItem(requireOrganizationId(organizationId), itemId);
+    const identity = requireWorkloadIdentity(request);
+    const item = await this.repository.getItem(identity.organizationId, itemId);
     if (item === null) throw new NotFoundException('Reconciliation item not found.');
     return presentReconciliationItem(item);
   }
 
   @Post('items/:itemId/resolve')
+  @RequireWorkloadScopes('reconciliation:write')
   public async resolveItem(
+    @Req() request: WorkloadAuthenticatedRequest,
     @Param('itemId', new ParseUUIDPipe({ version: '4' })) itemId: string,
-    @Query('organizationId') organizationId: string | undefined,
     @Body() body: ResolveItemBody,
   ) {
     if (body.status !== 'RESOLVED' && body.status !== 'IGNORED') {
       throw new BadRequestException('status must be RESOLVED or IGNORED');
     }
+    const identity = requireWorkloadIdentity(request);
     try {
       const item = await this.repository.resolveItem({
-        organizationId: requireOrganizationId(organizationId),
+        organizationId: identity.organizationId,
         itemId,
         status: body.status,
         resolutionNote: body.resolutionNote ?? '',
         reasonCode: body.reasonCode ?? '',
         idempotencyKey: body.idempotencyKey ?? '',
         correlationId: body.correlationId ?? '',
-        actorId: body.actorId ?? '',
-        actorType: body.actorType ?? '',
+        actorId: identity.workloadId,
+        actorType: 'WORKLOAD',
       });
       return presentReconciliationItem(item);
     } catch (error) {
