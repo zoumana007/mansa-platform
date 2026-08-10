@@ -7,6 +7,10 @@ import { WORKLOAD_IDENTITY_VERIFIER } from '../workload-identity.verifier';
 import { WorkloadScopeGuard } from '../workload-scope.guard';
 import { ReconciliationController } from './reconciliation.controller';
 import { ReconciliationImportService } from './reconciliation-import.service';
+import {
+  LowCardinalityReconciliationMetricsExporter,
+  RECONCILIATION_METRICS_EXPORTER,
+} from './reconciliation-metrics-exporter';
 import { ReconciliationOperationalMonitor } from './reconciliation-operational-monitor';
 import { TestReconciliationProviderAdapter } from './reconciliation-provider.adapter';
 import { ReconciliationRepository } from './reconciliation.repository';
@@ -18,6 +22,7 @@ import { ReconciliationRepository } from './reconciliation.repository';
     ReconciliationRepository,
     ReconciliationImportService,
     ReconciliationOperationalMonitor,
+    LowCardinalityReconciliationMetricsExporter,
     TestReconciliationProviderAdapter,
     WorkloadIdentityGuard,
     WorkloadScopeGuard,
@@ -26,10 +31,16 @@ import { ReconciliationRepository } from './reconciliation.repository';
       provide: WORKLOAD_IDENTITY_VERIFIER,
       useExisting: HmacWorkloadIdentityVerifier,
     },
+    {
+      provide: RECONCILIATION_METRICS_EXPORTER,
+      useExisting: LowCardinalityReconciliationMetricsExporter,
+    },
   ],
   exports: [
     ReconciliationImportService,
     ReconciliationOperationalMonitor,
+    LowCardinalityReconciliationMetricsExporter,
+    RECONCILIATION_METRICS_EXPORTER,
     ReconciliationRepository,
   ],
 })
