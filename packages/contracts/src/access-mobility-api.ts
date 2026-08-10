@@ -1,8 +1,10 @@
 import type {
   AccessCashValidationEvent,
   AccessCredential,
+  AccessCredentialStatus,
   AccessDecision,
   AccessEntitlement,
+  AccessEntitlementStatus,
   AccessRequest,
   AccessServiceAvailability,
   AccessTerminalDisplayState,
@@ -14,9 +16,11 @@ export const ACCESS_MOBILITY_API_ROUTES = {
   createCredential: '/v1/internal/access/credentials',
   getCredential: '/v1/internal/access/credentials/:credentialId',
   listCredentials: '/v1/internal/access/credentials',
+  updateCredentialStatus: '/v1/internal/access/credentials/:credentialId/status',
   createEntitlement: '/v1/internal/access/entitlements',
   getEntitlement: '/v1/internal/access/entitlements/:entitlementId',
   listEntitlements: '/v1/internal/access/entitlements',
+  updateEntitlementStatus: '/v1/internal/access/entitlements/:entitlementId/status',
   evaluateAccess: '/v1/internal/access/evaluate',
   recordUsage: '/v1/internal/access/usages',
   getServiceAvailability: '/v1/internal/access/locations/:locationId/availability',
@@ -30,9 +34,11 @@ export const ACCESS_MOBILITY_API_METHODS = {
   createCredential: 'POST',
   getCredential: 'GET',
   listCredentials: 'GET',
+  updateCredentialStatus: 'PATCH',
   createEntitlement: 'POST',
   getEntitlement: 'GET',
   listEntitlements: 'GET',
+  updateEntitlementStatus: 'PATCH',
   evaluateAccess: 'POST',
   recordUsage: 'POST',
   getServiceAvailability: 'GET',
@@ -68,8 +74,26 @@ export interface CreateAccessCredentialCommand {
   readonly correlationId: string;
 }
 
+export interface UpdateAccessCredentialStatusCommand {
+  readonly organizationId: string;
+  readonly credentialId: string;
+  readonly targetStatus: AccessCredentialStatus;
+  readonly reason: string;
+  readonly idempotencyKey: string;
+  readonly correlationId: string;
+}
+
 export interface CreateAccessEntitlementCommand {
   readonly entitlement: AccessEntitlement;
+  readonly idempotencyKey: string;
+  readonly correlationId: string;
+}
+
+export interface UpdateAccessEntitlementStatusCommand {
+  readonly organizationId: string;
+  readonly entitlementId: string;
+  readonly targetStatus: AccessEntitlementStatus;
+  readonly reason: string;
   readonly idempotencyKey: string;
   readonly correlationId: string;
 }
@@ -99,6 +123,10 @@ export interface AccessMobilityApiContract {
     readonly query: ListAccessCredentialsQuery;
     readonly response: readonly AccessCredential[];
   };
+  readonly updateCredentialStatus: {
+    readonly request: UpdateAccessCredentialStatusCommand;
+    readonly response: AccessCredential;
+  };
   readonly createEntitlement: {
     readonly request: CreateAccessEntitlementCommand;
     readonly response: AccessEntitlement;
@@ -109,6 +137,10 @@ export interface AccessMobilityApiContract {
   readonly listEntitlements: {
     readonly query: ListAccessEntitlementsQuery;
     readonly response: readonly AccessEntitlement[];
+  };
+  readonly updateEntitlementStatus: {
+    readonly request: UpdateAccessEntitlementStatusCommand;
+    readonly response: AccessEntitlement;
   };
   readonly evaluateAccess: {
     readonly request: AccessRequest;
