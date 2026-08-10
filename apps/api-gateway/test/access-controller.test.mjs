@@ -8,6 +8,10 @@ import { AccessController } from '../dist/access/access.controller.js';
 function createController(overrides = {}) {
   const calls = [];
   const service = {
+    async createCredential(command) {
+      calls.push(['createCredential', command]);
+      return overrides.createCredential?.(command) ?? command.credential;
+    },
     async getCredential(organizationId, credentialId) {
       calls.push(['getCredential', organizationId, credentialId]);
       return overrides.getCredential?.(organizationId, credentialId);
@@ -15,6 +19,10 @@ function createController(overrides = {}) {
     async listCredentials(organizationId, filters) {
       calls.push(['listCredentials', organizationId, filters]);
       return overrides.listCredentials?.(organizationId, filters) ?? [];
+    },
+    async createEntitlement(command) {
+      calls.push(['createEntitlement', command]);
+      return overrides.createEntitlement?.(command) ?? command.entitlement;
     },
     async getEntitlement(organizationId, entitlementId) {
       calls.push(['getEntitlement', organizationId, entitlementId]);
@@ -31,6 +39,42 @@ function createController(overrides = {}) {
   };
   return { controller: new AccessController(service), calls };
 }
+
+const credential = {
+  id: 'cred-1',
+  organizationId: 'org-a',
+  subjectType: 'VEHICLE',
+  subjectId: 'vehicle-1',
+  credentialType: 'RFID_UHF_TAG',
+  publicReference: 'tag-public-1',
+  status: 'ACTIVE',
+};
+
+const entitlement = {
+  id: 'ent-1',
+  organizationId: 'org-a',
+  subjectId: 'vehicle-1',
+  useCase: 'TOLL',
+  status: 'ACTIVE',
+  validFrom: '2026-08-10T00:00:00.000Z',
+};
+
+test('credential creation validates the command before calling the service', async () => {
+  const { controller, calls } = createController();
+  await assert.rejects(
+    () => controller.createCredential({ credential, idempotencyKey: '', correlationId: 'corr-1' }),
+    BadRequestException,
+  );
+  assert.deepEqual(calls, []);
+});
+
+test('credential creation forwards the normalized internal command', async () => {
+  const { controller, calls } = createController();
+  const command = { credential, idempotencyKey: 'idem-1', correlationId: 'corr-1' };
+  const result = await controller.createCredential(command);
+  assert.deepEqual(result, credential);
+  assert.deepEqual(calls, [['createCredential', command]]);
+});
 
 test('credential reads require an organizationId before calling the service', async () => {
   const { controller, calls } = createController();
@@ -59,6 +103,23 @@ test('credential list rejects invalid limits without calling persistence', async
     await assert.rejects(() => controller.listCredentials('org-a', undefined, undefined, undefined, limit), BadRequestException);
     assert.deepEqual(calls, []);
   }
+});
+
+test('entitlement creation validates required validity data', async () => {
+  const { controller, calls } = createController();
+  await assert.rejects(
+    () => controller.createEntitlement({ entitlement: { ...entitlement, validFrom: '' }, idempotencyKey: 'idem-2', correlationId: 'corr-2' }),
+    BadRequestException,
+  );
+  assert.deepEqual(calls, []);
+});
+
+test('entitlement creation forwards the internal command', async () => {
+  const { controller, calls } = createController();
+  const command = { entitlement, idempotencyKey: 'idem-2', correlationId: 'corr-2' };
+  const result = await controller.createEntitlement(command);
+  assert.deepEqual(result, entitlement);
+  assert.deepEqual(calls, [['createEntitlement', command]]);
 });
 
 test('entitlement reads require tenant isolation and map absence to 404', async () => {
