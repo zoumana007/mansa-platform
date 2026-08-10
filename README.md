@@ -1,67 +1,17 @@
 # Mansa Platform
 
-Monorepo technique de la plateforme fintech Mansa. La documentation fonctionnelle exhaustive est conservée dans `zoumana007/mansa-docs` et prévaut sur les descriptions résumées de ce dépôt.
+Ce dépôt contient le socle technique exécutable de Mansa. La documentation produit et d’architecture détaillée vit dans le dépôt `mansa-docs`.
 
-## Applications mobiles
+## Principes
 
-- `apps/mobile-client` : application Client React Native.
-- `apps/mobile-merchant` : application Commerçant React Native.
-- `apps/mobile-admin-lite` : administration mobile React Native.
-- `apps/mobile-directory` : application autonome Annuaire / Hub React Native.
-- `apps/tpe-android` : application terminal de paiement Android, avec couche d’intégration matérielle isolée.
-
-## Applications web
-
-- `apps/admin-web` : portail d’administration Next.js.
-- `apps/public-web` : site public officiel Mansa Next.js.
-- `apps/business-web` : second site Next.js dédié aux commerçants, partenaires, TPE et services professionnels.
-
-## Backend et services
-
-- `apps/api-gateway` : API NestJS, authentification, orchestration et exposition des contrats.
-- `apps/ai-services` : services IA contrôlés pour Jini, support, fraude et recommandations.
-- `apps/workers` : traitements asynchrones, événements, notifications et tâches planifiées.
-
-## Paquets partagés
-
-- `packages/config` : configurations TypeScript, ESLint et outils.
-- `packages/contracts` : contrats, DTO, événements et schémas partagés.
-- `packages/domain` : primitives métier indépendantes des frameworks.
-- `packages/ui` : design system et composants partagés lorsque pertinent.
-- `packages/security` : politiques, autorisations et primitives de sécurité.
-- `packages/observability` : logs structurés, métriques, traces et corrélation.
-
-## Infrastructure
-
-- `infra/` : définitions d’environnements, déploiement, observabilité, sauvegardes et reprise.
-- `.github/workflows/` : validation CI sans secret de production.
-- `docs/` : décisions techniques locales et liens vers le dépôt documentaire.
-
-La vue technique des frontières, dépendances et flux financiers se trouve dans [`docs/architecture.md`](docs/architecture.md). Les règles d’erreurs, corrélation et idempotence à appliquer par les services se trouvent dans [`docs/api-conventions.md`](docs/api-conventions.md).
-
-## Principes obligatoires
-
-- TypeScript strict lorsque la technologie le permet.
-- Architecture modulaire et dépendances orientées vers le domaine.
-- Montants financiers stockés en unités mineures avec entiers.
-- Ledger en partie double pour les mouvements financiers.
-- Idempotence obligatoire pour les opérations financières et webhooks.
-- Aucun secret versionné ; uniquement des fichiers `.env.example` sans valeur réelle.
-- Environnements Démo, Recette et Production séparés.
-- RBAC/ABAC, moindre privilège, double validation et audit pour actions sensibles.
-- Multi-pays, multi-devise, multi-langue et configuration administrable.
-- CI obligatoire avant fusion.
+- aucun secret réel dans Git ;
+- séparation stricte entre contrats partagés, logique métier, persistance et exposition HTTP ;
+- opérations financières idempotentes et auditables ;
+- isolation tenant appliquée dans les requêtes de persistance, pas seulement après lecture ;
+- intégrations externes derrière des adaptateurs ;
+- migrations PostgreSQL versionnées et contrôlées.
 
 ## Grand livre financier
-
-Le contrat métier de référence du grand livre est défini dans `packages/contracts/src/ledger.ts`. Il introduit les comptes comptables, les écritures débit/crédit, les transactions comptables, les commandes de publication et de compensation ainsi qu’une validation déterministe des invariants suivants :
-
-- au moins deux écritures par transaction comptable ;
-- montants strictement positifs ;
-- devise identique pour toutes les écritures ;
-- égalité exacte entre les totaux débit et crédit ;
-- idempotence et corrélation obligatoires au niveau des commandes ;
-- compensation par nouvelle transaction, jamais par modification d’une écriture publiée.
 
 Le contrat de transport interne est défini dans `packages/contracts/src/ledger-api.ts`. Il expose les routes internes de publication, lecture, compensation, consultation de compte, solde et écritures. Le package `@mansa/contracts` publie explicitement les sous-chemins `./ledger` et `./ledger-api`.
 
@@ -73,15 +23,15 @@ Le backend contient désormais la persistance PostgreSQL de référence, les lec
 
 Les contrats partagés `@mansa/contracts/reconciliation` et `@mansa/contracts/reconciliation-api` définissent les lots, items, motifs d’écart, résolution et routes de consultation. Le moteur de comparaison pur couvre les transactions manquantes, doublons fournisseur, différences de devise, montant et statut ainsi que le résumé déterministe d’un lot.
 
-La persistance PostgreSQL de référence est engagée dans `apps/api-gateway/prisma/schema.prisma` avec `ReconciliationBatch` et `ReconciliationItem`, accompagnés d’une migration versionnée. Le repository `apps/api-gateway/src/reconciliation/reconciliation.repository.ts` fournit la recherche idempotente par `(providerId, sourceFingerprint)`, la création transactionnelle d’un lot et de ses items, le calcul atomique des compteurs matérialisés et des lectures bornées. L’import exige une empreinte de source non vide, valide la fenêtre temporelle et les références minimales, normalise devise/statuts et réutilise le lot existant lorsqu’une source identique a déjà été traitée.
+La persistance PostgreSQL de référence est engagée dans `apps/api-gateway/prisma/schema.prisma` avec `ReconciliationBatch` et `ReconciliationItem`, accompagnés d’une migration versionnée. `organizationId` est désormais matérialisé sur les lots et les items. L’unicité d’import est scoppée par `(organizationId, providerId, sourceFingerprint)` et l’idempotence de résolution par `(organizationId, resolutionIdempotencyKey)`.
 
-L’adaptateur fournisseur de test déterministe et les routes internes protégées sont câblés dans l’API Gateway. La CI démarre PostgreSQL, applique les migrations puis exécute des tests réels qui couvrent persistance, normalisation, compteurs, idempotence séquentielle, idempotence concurrente, pagination keyset par curseur et limites de lecture. En cas de course sur la contrainte unique `(providerId, sourceFingerprint)`, le repository transforme la collision concurrente en réutilisation du lot gagnant au lieu de laisser remonter un doublon ou une erreur métier.
+Le repository `apps/api-gateway/src/reconciliation/reconciliation.repository.ts` exige maintenant explicitement la portée d’organisation pour les imports, recherches idempotentes, lectures, listes paginées et résolutions. La portée est appliquée dans les requêtes Prisma elles-mêmes. Un identifiant appartenant à un autre tenant est donc traité comme absent ; les résolutions inter-tenant ne créent ni mutation ni audit. Les items créés héritent explicitement de l’`organizationId` du lot et les audits de résolution conservent cette portée dans leurs métadonnées.
 
-La résolution manuelle d’un item `MISMATCHED` ou `PARTIALLY_MATCHED` est également implémentée : seules les transitions `RESOLVED` et `IGNORED` sont acceptées, la commande exige note, motif, clé d’idempotence, corrélation et identité d’acteur, et la mutation de l’item, le compteur du lot et `OperationalAuditLog` sont persistés dans la même transaction. Le rejeu de la même clé est sans effet secondaire supplémentaire, tandis qu’une réutilisation conflictuelle de la clé est rejetée. `reconciliation-controller.test.mjs` valide les limites, curseurs, erreurs `404/400` et la transmission complète des champs d’audit.
+Le contrôleur interne exige également un `organizationId` explicite sur toutes les routes de rapprochement. Cette exigence est une étape transitoire de sûreté derrière `InternalServiceGuard`, en attendant une identité workload attestée qui fournira la portée autorisée sans faire confiance à une valeur arbitraire en production.
 
-La prochaine tranche doit isoler complètement les lots et items par tenant/organisation, ajouter les filtres de consultation prévus par le contrat partagé puis sérialiser strictement les réponses HTTP vers les DTO publics avant d’aborder identité workload attestée, métriques/alertes et premiers adaptateurs partenaires réels.
+Les tests de contrôleur couvrent l’absence de portée, la propagation de l’organisation et les comportements `404/400`. La recette PostgreSQL couvre l’isolation lecture/liste, l’idempotence d’import par tenant, la coexistence d’une même source dans deux organisations, la pagination scoppée et le refus d’une résolution inter-tenant. La prochaine tranche doit ajouter les filtres de consultation prévus par le contrat partagé puis sérialiser strictement les réponses HTTP vers les DTO publics avant d’aborder identité workload attestée, métriques/alertes et premiers adaptateurs partenaires réels.
 
-Les spécifications correspondantes se trouvent dans `mansa-docs/volume-08-donnees-analytics/10-moteur-rapprochement-financier.md` et `mansa-docs/volume-08-donnees-analytics/11-validation-postgresql-rapprochement.md`.
+Les spécifications correspondantes se trouvent dans `mansa-docs/volume-08-donnees-analytics/10-moteur-rapprochement-financier.md`, `mansa-docs/volume-08-donnees-analytics/11-validation-postgresql-rapprochement.md` et `mansa-docs/volume-08-donnees-analytics/12-isolation-tenant-rapprochement.md`.
 
 ## Accès, mobilité et cartes multiservices
 
@@ -94,24 +44,8 @@ Le moteur de décision reste indépendant du fabricant du lecteur ou de la barri
 ```bash
 corepack enable
 pnpm install
-pnpm lint
-pnpm typecheck
-pnpm test
 pnpm build
+pnpm test
 ```
 
-Pour exécuter la validation complète du monorepo :
-
-```bash
-pnpm validate
-```
-
-Copier `.env.example` vers `.env` uniquement en local. Les valeurs réelles doivent provenir d’un gestionnaire de secrets en environnement hébergé.
-
-## Règle pour Codex et VS Code IA
-
-Avant de générer un module, lire l’inventaire produit, la spécification de l’application concernée, les règles métier, les contrats API, le modèle de données et les critères d’acceptation dans `mansa-docs`. Ne pas supprimer un produit parce que son squelette n’est pas encore implémenté.
-
-## État
-
-Le dépôt est en construction progressive. Les cinq applications mobiles, les trois interfaces web, le backend, les services IA, les workers, les packages partagés et l’infrastructure font partie du périmètre obligatoire.
+Les tests PostgreSQL d’intégration sont opt-in et nécessitent une base dédiée ainsi que `RUN_POSTGRES_TESTS=1`.
