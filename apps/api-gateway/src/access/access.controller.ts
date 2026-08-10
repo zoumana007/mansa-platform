@@ -9,7 +9,11 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import type { AccessRequest } from '@mansa/contracts/access-mobility';
+import type {
+  CreateAccessCredentialCommand,
+  CreateAccessEntitlementCommand,
+} from '@mansa/contracts/access-mobility-api';
+import type { AccessCredential, AccessEntitlement, AccessRequest } from '@mansa/contracts/access-mobility';
 
 import { InternalServiceGuard } from '../internal-service.guard';
 import { AccessService } from './access.service';
@@ -30,10 +34,50 @@ function optionalLimit(value: unknown): number | undefined {
   return parsed;
 }
 
+function requireCredential(value: unknown): AccessCredential {
+  if (!value || typeof value !== 'object') throw new BadRequestException('credential is required');
+  const credential = value as Partial<AccessCredential>;
+  requireString('credential.id', credential.id);
+  requireString('credential.organizationId', credential.organizationId);
+  requireString('credential.subjectId', credential.subjectId);
+  requireString('credential.subjectType', credential.subjectType);
+  requireString('credential.credentialType', credential.credentialType);
+  requireString('credential.publicReference', credential.publicReference);
+  requireString('credential.status', credential.status);
+  return credential as AccessCredential;
+}
+
+function requireEntitlement(value: unknown): AccessEntitlement {
+  if (!value || typeof value !== 'object') throw new BadRequestException('entitlement is required');
+  const entitlement = value as Partial<AccessEntitlement>;
+  requireString('entitlement.id', entitlement.id);
+  requireString('entitlement.organizationId', entitlement.organizationId);
+  requireString('entitlement.subjectId', entitlement.subjectId);
+  requireString('entitlement.useCase', entitlement.useCase);
+  requireString('entitlement.status', entitlement.status);
+  requireString('entitlement.validFrom', entitlement.validFrom);
+  return entitlement as AccessEntitlement;
+}
+
 @UseGuards(InternalServiceGuard)
 @Controller({ path: 'internal/access', version: '1' })
 export class AccessController {
   public constructor(private readonly service: AccessService) {}
+
+  @Post('credentials')
+  public async createCredential(@Body() body: Partial<CreateAccessCredentialCommand>) {
+    const command: CreateAccessCredentialCommand = {
+      credential: requireCredential(body.credential),
+      idempotencyKey: requireString('idempotencyKey', body.idempotencyKey),
+      correlationId: requireString('correlationId', body.correlationId),
+    };
+    try {
+      return await this.service.createCredential(command);
+    } catch (error) {
+      if (error instanceof Error) throw new BadRequestException(error.message);
+      throw error;
+    }
+  }
 
   @Get('credentials/:credentialId')
   public async getCredential(
@@ -61,6 +105,21 @@ export class AccessController {
       ...(credentialType ? { credentialType } : {}),
       ...(optionalLimit(limitValue) === undefined ? {} : { limit: optionalLimit(limitValue) }),
     });
+  }
+
+  @Post('entitlements')
+  public async createEntitlement(@Body() body: Partial<CreateAccessEntitlementCommand>) {
+    const command: CreateAccessEntitlementCommand = {
+      entitlement: requireEntitlement(body.entitlement),
+      idempotencyKey: requireString('idempotencyKey', body.idempotencyKey),
+      correlationId: requireString('correlationId', body.correlationId),
+    };
+    try {
+      return await this.service.createEntitlement(command);
+    } catch (error) {
+      if (error instanceof Error) throw new BadRequestException(error.message);
+      throw error;
+    }
   }
 
   @Get('entitlements/:entitlementId')
