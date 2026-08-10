@@ -13,6 +13,7 @@ import {
 import type {
   CreateAccessCredentialCommand,
   CreateAccessEntitlementCommand,
+  ReplaceAccessCredentialCommand,
   UpdateAccessCredentialStatusCommand,
   UpdateAccessEntitlementStatusCommand,
 } from '@mansa/contracts/access-mobility-api';
@@ -28,18 +29,14 @@ import { InternalServiceGuard } from '../internal-service.guard';
 import { AccessService } from './access.service';
 
 function requireString(name: string, value: unknown): string {
-  if (typeof value !== 'string' || value.trim().length === 0) {
-    throw new BadRequestException(`${name} is required`);
-  }
+  if (typeof value !== 'string' || value.trim().length === 0) throw new BadRequestException(`${name} is required`);
   return value.trim();
 }
 
 function optionalLimit(value: unknown): number | undefined {
   if (value === undefined) return undefined;
   const parsed = Number(value);
-  if (!Number.isInteger(parsed) || parsed < 1 || parsed > 100) {
-    throw new BadRequestException('limit must be an integer between 1 and 100');
-  }
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > 100) throw new BadRequestException('limit must be an integer between 1 and 100');
   return parsed;
 }
 
@@ -80,19 +77,12 @@ export class AccessController {
       idempotencyKey: requireString('idempotencyKey', body.idempotencyKey),
       correlationId: requireString('correlationId', body.correlationId),
     };
-    try {
-      return await this.service.createCredential(command);
-    } catch (error) {
-      if (error instanceof Error) throw new BadRequestException(error.message);
-      throw error;
-    }
+    try { return await this.service.createCredential(command); }
+    catch (error) { if (error instanceof Error) throw new BadRequestException(error.message); throw error; }
   }
 
   @Patch('credentials/:credentialId/status')
-  public async updateCredentialStatus(
-    @Param('credentialId') credentialId: string,
-    @Body() body: Partial<UpdateAccessCredentialStatusCommand>,
-  ) {
+  public async updateCredentialStatus(@Param('credentialId') credentialId: string, @Body() body: Partial<UpdateAccessCredentialStatusCommand>) {
     const command: UpdateAccessCredentialStatusCommand = {
       credentialId: requireString('credentialId', credentialId),
       organizationId: requireString('organizationId', body.organizationId),
@@ -101,9 +91,26 @@ export class AccessController {
       idempotencyKey: requireString('idempotencyKey', body.idempotencyKey),
       correlationId: requireString('correlationId', body.correlationId),
     };
-    try {
-      return await this.service.updateCredentialStatus(command);
-    } catch (error) {
+    try { return await this.service.updateCredentialStatus(command); }
+    catch (error) {
+      if (error instanceof Error && error.message.includes('not found')) throw new NotFoundException(error.message);
+      if (error instanceof Error) throw new BadRequestException(error.message);
+      throw error;
+    }
+  }
+
+  @Post('credentials/:credentialId/replacement')
+  public async replaceCredential(@Param('credentialId') credentialId: string, @Body() body: Partial<ReplaceAccessCredentialCommand>) {
+    const command: ReplaceAccessCredentialCommand = {
+      credentialId: requireString('credentialId', credentialId),
+      organizationId: requireString('organizationId', body.organizationId),
+      replacement: requireCredential(body.replacement),
+      reason: requireString('reason', body.reason),
+      idempotencyKey: requireString('idempotencyKey', body.idempotencyKey),
+      correlationId: requireString('correlationId', body.correlationId),
+    };
+    try { return await this.service.replaceCredential(command); }
+    catch (error) {
       if (error instanceof Error && error.message.includes('not found')) throw new NotFoundException(error.message);
       if (error instanceof Error) throw new BadRequestException(error.message);
       throw error;
@@ -111,10 +118,7 @@ export class AccessController {
   }
 
   @Get('credentials/:credentialId')
-  public async getCredential(
-    @Param('credentialId') credentialId: string,
-    @Query('organizationId') organizationIdValue: string | undefined,
-  ) {
+  public async getCredential(@Param('credentialId') credentialId: string, @Query('organizationId') organizationIdValue: string | undefined) {
     const organizationId = requireString('organizationId', organizationIdValue);
     const credential = await this.service.getCredential(organizationId, credentialId);
     if (!credential) throw new NotFoundException('credential not found');
@@ -132,10 +136,7 @@ export class AccessController {
     const organizationId = requireString('organizationId', organizationIdValue);
     const limit = optionalLimit(limitValue);
     return this.service.listCredentials(organizationId, {
-      ...(subjectId ? { subjectId } : {}),
-      ...(status ? { status } : {}),
-      ...(credentialType ? { credentialType } : {}),
-      ...(limit === undefined ? {} : { limit }),
+      ...(subjectId ? { subjectId } : {}), ...(status ? { status } : {}), ...(credentialType ? { credentialType } : {}), ...(limit === undefined ? {} : { limit }),
     });
   }
 
@@ -146,19 +147,12 @@ export class AccessController {
       idempotencyKey: requireString('idempotencyKey', body.idempotencyKey),
       correlationId: requireString('correlationId', body.correlationId),
     };
-    try {
-      return await this.service.createEntitlement(command);
-    } catch (error) {
-      if (error instanceof Error) throw new BadRequestException(error.message);
-      throw error;
-    }
+    try { return await this.service.createEntitlement(command); }
+    catch (error) { if (error instanceof Error) throw new BadRequestException(error.message); throw error; }
   }
 
   @Patch('entitlements/:entitlementId/status')
-  public async updateEntitlementStatus(
-    @Param('entitlementId') entitlementId: string,
-    @Body() body: Partial<UpdateAccessEntitlementStatusCommand>,
-  ) {
+  public async updateEntitlementStatus(@Param('entitlementId') entitlementId: string, @Body() body: Partial<UpdateAccessEntitlementStatusCommand>) {
     const command: UpdateAccessEntitlementStatusCommand = {
       entitlementId: requireString('entitlementId', entitlementId),
       organizationId: requireString('organizationId', body.organizationId),
@@ -167,9 +161,8 @@ export class AccessController {
       idempotencyKey: requireString('idempotencyKey', body.idempotencyKey),
       correlationId: requireString('correlationId', body.correlationId),
     };
-    try {
-      return await this.service.updateEntitlementStatus(command);
-    } catch (error) {
+    try { return await this.service.updateEntitlementStatus(command); }
+    catch (error) {
       if (error instanceof Error && error.message.includes('not found')) throw new NotFoundException(error.message);
       if (error instanceof Error) throw new BadRequestException(error.message);
       throw error;
@@ -177,10 +170,7 @@ export class AccessController {
   }
 
   @Get('entitlements/:entitlementId')
-  public async getEntitlement(
-    @Param('entitlementId') entitlementId: string,
-    @Query('organizationId') organizationIdValue: string | undefined,
-  ) {
+  public async getEntitlement(@Param('entitlementId') entitlementId: string, @Query('organizationId') organizationIdValue: string | undefined) {
     const organizationId = requireString('organizationId', organizationIdValue);
     const entitlement = await this.service.getEntitlement(organizationId, entitlementId);
     if (!entitlement) throw new NotFoundException('entitlement not found');
@@ -198,10 +188,7 @@ export class AccessController {
     const organizationId = requireString('organizationId', organizationIdValue);
     const limit = optionalLimit(limitValue);
     return this.service.listEntitlements(organizationId, {
-      ...(subjectId ? { subjectId } : {}),
-      ...(useCase ? { useCase } : {}),
-      ...(status ? { status } : {}),
-      ...(limit === undefined ? {} : { limit }),
+      ...(subjectId ? { subjectId } : {}), ...(useCase ? { useCase } : {}), ...(status ? { status } : {}), ...(limit === undefined ? {} : { limit }),
     });
   }
 
@@ -226,17 +213,9 @@ export class AccessController {
       ...(body.paymentMethod ? { paymentMethod: body.paymentMethod } : {}),
       ...(body.requestedAmount ? { requestedAmount: body.requestedAmount } : {}),
     };
-
-    try {
-      return await this.service.evaluate(request);
-    } catch (error) {
-      if (error instanceof Error && (
-        error.message.includes('must be') ||
-        error.message.includes('does not belong') ||
-        error.message.includes('does not match')
-      )) {
-        throw new BadRequestException(error.message);
-      }
+    try { return await this.service.evaluate(request); }
+    catch (error) {
+      if (error instanceof Error && (error.message.includes('must be') || error.message.includes('does not belong') || error.message.includes('does not match'))) throw new BadRequestException(error.message);
       throw error;
     }
   }
