@@ -6,12 +6,13 @@ import {
 } from './reconciliation-operational-monitor';
 
 export type ReconciliationMetricKind = 'COUNTER' | 'GAUGE';
+export type ReconciliationMetricUnit = 'count' | 'milliseconds';
 
 export interface ReconciliationMetricSample {
   readonly name: string;
   readonly kind: ReconciliationMetricKind;
   readonly value: number;
-  readonly unit: 'count';
+  readonly unit: ReconciliationMetricUnit;
 }
 
 export interface ReconciliationMetricsExporter {
@@ -35,31 +36,48 @@ export class LowCardinalityReconciliationMetricsExporter
   public export(
     snapshot: ReconciliationOperationalSnapshot = this.monitor.snapshot(),
   ): readonly ReconciliationMetricSample[] {
-    return Object.freeze([
-      Object.freeze({
+    const samples: ReconciliationMetricSample[] = [
+      {
         name: 'mansa_reconciliation_imports_started_total',
-        kind: 'COUNTER' as const,
+        kind: 'COUNTER',
         value: snapshot.importsStarted,
-        unit: 'count' as const,
-      }),
-      Object.freeze({
+        unit: 'count',
+      },
+      {
         name: 'mansa_reconciliation_imports_succeeded_total',
-        kind: 'COUNTER' as const,
+        kind: 'COUNTER',
         value: snapshot.importsSucceeded,
-        unit: 'count' as const,
-      }),
-      Object.freeze({
+        unit: 'count',
+      },
+      {
         name: 'mansa_reconciliation_imports_failed_total',
-        kind: 'COUNTER' as const,
+        kind: 'COUNTER',
         value: snapshot.importsFailed,
-        unit: 'count' as const,
-      }),
-      Object.freeze({
+        unit: 'count',
+      },
+      {
         name: 'mansa_reconciliation_imported_items_total',
-        kind: 'COUNTER' as const,
+        kind: 'COUNTER',
         value: snapshot.importedItems,
-        unit: 'count' as const,
-      }),
-    ]);
+        unit: 'count',
+      },
+      {
+        name: 'mansa_reconciliation_import_duration_ms_total',
+        kind: 'COUNTER',
+        value: snapshot.completedImportDurationMsTotal,
+        unit: 'milliseconds',
+      },
+    ];
+
+    if (snapshot.lastCompletedImportDurationMs !== null) {
+      samples.push({
+        name: 'mansa_reconciliation_last_import_duration_ms',
+        kind: 'GAUGE',
+        value: snapshot.lastCompletedImportDurationMs,
+        unit: 'milliseconds',
+      });
+    }
+
+    return Object.freeze(samples.map((sample) => Object.freeze(sample)));
   }
 }
