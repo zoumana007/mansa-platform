@@ -5,6 +5,11 @@ import { PrismaService } from '../prisma.service';
 import { WorkloadIdentityGuard } from '../workload-identity.guard';
 import { WORKLOAD_IDENTITY_VERIFIER } from '../workload-identity.verifier';
 import { WorkloadScopeGuard } from '../workload-scope.guard';
+import {
+  NoopReconciliationAlertSink,
+  RECONCILIATION_ALERT_SINK,
+  ReconciliationAlertDispatcher,
+} from './reconciliation-alert-dispatcher';
 import { ReconciliationAlertingPolicy } from './reconciliation-alerting-policy';
 import { ReconciliationController } from './reconciliation.controller';
 import { ReconciliationImportService } from './reconciliation-import.service';
@@ -27,6 +32,8 @@ import { ReconciliationSloPolicy } from './reconciliation-slo-policy';
     ReconciliationOperationalMonitor,
     ReconciliationSloPolicy,
     ReconciliationAlertingPolicy,
+    ReconciliationAlertDispatcher,
+    NoopReconciliationAlertSink,
     LowCardinalityReconciliationMetricsExporter,
     TestReconciliationProviderAdapter,
     WorkloadIdentityGuard,
@@ -40,12 +47,18 @@ import { ReconciliationSloPolicy } from './reconciliation-slo-policy';
       provide: RECONCILIATION_METRICS_EXPORTER,
       useExisting: LowCardinalityReconciliationMetricsExporter,
     },
+    {
+      provide: RECONCILIATION_ALERT_SINK,
+      useExisting: NoopReconciliationAlertSink,
+    },
   ],
   exports: [
     ReconciliationImportService,
     ReconciliationOperationalMonitor,
     ReconciliationSloPolicy,
     ReconciliationAlertingPolicy,
+    ReconciliationAlertDispatcher,
+    RECONCILIATION_ALERT_SINK,
     LowCardinalityReconciliationMetricsExporter,
     RECONCILIATION_METRICS_EXPORTER,
     ReconciliationRepository,
