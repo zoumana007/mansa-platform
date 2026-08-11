@@ -141,3 +141,11 @@ export type {
 } from './feedback.js';
 export { createProgressSemantics } from './progress.js';
 export type { ProgressSemantics, ProgressSemanticsInput, ProgressState } from './progress.js';
+export { createNavigationSemantics } from './navigation.js';
+export type {
+  NavigationItemInput,
+  NavigationItemSemantics,
+  NavigationKind,
+  NavigationSemantics,
+  NavigationSemanticsInput,
+} from './navigation.js';
