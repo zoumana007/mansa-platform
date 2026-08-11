@@ -21,6 +21,7 @@ import {
 import { ReconciliationMonitoringOrchestrator } from './reconciliation-monitoring-orchestrator';
 import { ReconciliationOperationalMonitor } from './reconciliation-operational-monitor';
 import { TestReconciliationProviderAdapter } from './reconciliation-provider.adapter';
+import { ReconciliationProviderRegistry } from './reconciliation-provider-registry';
 import { ReconciliationRepository } from './reconciliation.repository';
 import { ReconciliationSloPolicy } from './reconciliation-slo-policy';
 
@@ -38,6 +39,15 @@ import { ReconciliationSloPolicy } from './reconciliation-slo-policy';
     NoopReconciliationAlertSink,
     LowCardinalityReconciliationMetricsExporter,
     TestReconciliationProviderAdapter,
+    {
+      provide: ReconciliationProviderRegistry,
+      inject: [TestReconciliationProviderAdapter],
+      useFactory: (testAdapter: TestReconciliationProviderAdapter) => {
+        const registry = new ReconciliationProviderRegistry();
+        registry.register(testAdapter);
+        return registry;
+      },
+    },
     WorkloadIdentityGuard,
     WorkloadScopeGuard,
     HmacWorkloadIdentityVerifier,
@@ -61,6 +71,7 @@ import { ReconciliationSloPolicy } from './reconciliation-slo-policy';
     ReconciliationAlertingPolicy,
     ReconciliationAlertDispatcher,
     ReconciliationMonitoringOrchestrator,
+    ReconciliationProviderRegistry,
     RECONCILIATION_ALERT_SINK,
     LowCardinalityReconciliationMetricsExporter,
     RECONCILIATION_METRICS_EXPORTER,
