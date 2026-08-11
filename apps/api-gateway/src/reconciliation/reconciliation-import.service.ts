@@ -3,22 +3,22 @@ import { summarizeReconciliationComparisons } from '@mansa/contracts/reconciliat
 import { performance } from 'node:perf_hooks';
 
 import { ReconciliationOperationalMonitor } from './reconciliation-operational-monitor';
+import { ReconciliationProviderRegistry } from './reconciliation-provider-registry';
 import { ReconciliationRepository } from './reconciliation.repository';
-import {
-  TestReconciliationProviderAdapter,
-  type InternalReconciliationRow,
-  type ProviderReconciliationSource,
+import type {
+  InternalReconciliationRow,
+  ProviderReconciliationSource,
 } from './reconciliation-provider.adapter';
 
 @Injectable()
 export class ReconciliationImportService {
   public constructor(
     private readonly repository: ReconciliationRepository,
-    private readonly testProviderAdapter: TestReconciliationProviderAdapter,
+    private readonly providerRegistry: ReconciliationProviderRegistry,
     private readonly monitor: ReconciliationOperationalMonitor,
   ) {}
 
-  public async importTestProviderSource(
+  public async importProviderSource(
     organizationId: string,
     source: ProviderReconciliationSource,
     internalRows: readonly InternalReconciliationRow[],
@@ -26,7 +26,8 @@ export class ReconciliationImportService {
     const startedMonotonicMs = performance.now();
     this.monitor.recordImportStarted();
     try {
-      const prepared = this.testProviderAdapter.prepare(source, internalRows);
+      const adapter = this.providerRegistry.resolve(source.providerId);
+      const prepared = adapter.prepare(source, internalRows);
 
       const result = await this.repository.importBatch({
         organizationId,
@@ -37,7 +38,7 @@ export class ReconciliationImportService {
         sourceFingerprint: prepared.sourceFingerprint,
         periodStart: prepared.periodStart,
         periodEnd: prepared.periodEnd,
-        metadata: { adapter: 'TEST_NORMALIZED_V1' },
+        metadata: { adapter: adapter.adapterId },
         items: prepared.items.map(({ comparison, providerOccurrenceCount, rawLineFingerprint }) => ({
           ...(comparison.internalReference === undefined
             ? {}
@@ -85,5 +86,17 @@ export class ReconciliationImportService {
       this.monitor.recordImportFailed(new Date(), performance.now() - startedMonotonicMs);
       throw error;
     }
+  }
+
+  /**
+   * Compatibilité transitoire pour les appels de pilote existants.
+   * La résolution réelle de l'adaptateur passe désormais par le registre.
+   */
+  public async importTestProviderSource(
+    organizationId: string,
+    source: ProviderReconciliationSource,
+    internalRows: readonly InternalReconciliationRow[],
+  ) {
+    return this.importProviderSource(organizationId, source, internalRows);
   }
 }
