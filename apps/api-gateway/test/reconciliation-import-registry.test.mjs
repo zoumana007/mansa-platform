@@ -19,6 +19,7 @@ function buildHarness() {
   registry.register(new TestReconciliationProviderAdapter());
   const monitor = {
     recordImportStarted: () => events.push('started'),
+    recordImportQuarantined: (code) => events.push(`quarantined:${code}`),
     recordImportSucceeded: () => events.push('succeeded'),
     recordImportFailed: () => events.push('failed'),
   };
@@ -56,9 +57,7 @@ const internalRows = [
 
 test('provider-neutral import resolves adapter through registry and persists its id', async () => {
   const harness = buildHarness();
-
   const result = await harness.service.importProviderSource('org-1', source, internalRows);
-
   assert.deepEqual(result, { id: 'batch-1' });
   assert.equal(harness.imported.length, 1);
   assert.equal(harness.imported[0].providerId, 'TEST-BANK');
@@ -69,28 +68,23 @@ test('provider-neutral import resolves adapter through registry and persists its
 
 test('legacy test-provider entrypoint delegates to provider-neutral import', async () => {
   const harness = buildHarness();
-
   await harness.service.importTestProviderSource('org-1', source, internalRows);
-
   assert.equal(harness.imported.length, 1);
   assert.deepEqual(harness.imported[0].metadata, { adapter: 'test-normalized-v1' });
 });
 
 test('unknown provider fails closed and records failed import', async () => {
   const harness = buildHarness();
-
   await assert.rejects(
     harness.service.importProviderSource('org-1', { ...source, providerId: 'REAL-BANK' }, internalRows),
     /no reconciliation adapter registered/,
   );
-
   assert.equal(harness.imported.length, 0);
   assert.deepEqual(harness.events, ['started', 'failed']);
 });
 
 test('malformed provider source is quarantined before adapter resolution or persistence', async () => {
   const harness = buildHarness();
-
   await assert.rejects(
     harness.service.importProviderSource(
       'org-1',
@@ -110,7 +104,6 @@ test('malformed provider source is quarantined before adapter resolution or pers
       return true;
     },
   );
-
   assert.equal(harness.imported.length, 0);
-  assert.deepEqual(harness.events, ['started', 'failed']);
+  assert.deepEqual(harness.events, ['started', 'quarantined:INVALID_AMOUNT', 'failed']);
 });
