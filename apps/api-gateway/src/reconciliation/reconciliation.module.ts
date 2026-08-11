@@ -27,6 +27,7 @@ import { ReconciliationOperationalMonitor } from './reconciliation-operational-m
 import { ReconciliationProviderRegistry } from './reconciliation-provider-registry';
 import { TestReconciliationProviderAdapter } from './reconciliation-provider.adapter';
 import { ReconciliationQuarantineDecisionService } from './reconciliation-quarantine-decision.service';
+import { ReconciliationQuarantinePersistencePolicy } from './reconciliation-quarantine-persistence-policy';
 import { ReconciliationQuarantinePolicyRegistry } from './reconciliation-quarantine-policy-registry';
 import { ReconciliationRepository } from './reconciliation.repository';
 import { ReconciliationSloPolicy } from './reconciliation-slo-policy';
@@ -43,6 +44,7 @@ import { ReconciliationSloPolicy } from './reconciliation-slo-policy';
     ReconciliationAlertDispatcher,
     ReconciliationMonitoringOrchestrator,
     ReconciliationQuarantinePolicyRegistry,
+    ReconciliationQuarantinePersistencePolicy,
     ReconciliationQuarantineDecisionService,
     NoopReconciliationAlertSink,
     InMemoryReconciliationAlertStateStore,
@@ -86,6 +88,7 @@ import { ReconciliationSloPolicy } from './reconciliation-slo-policy';
     ReconciliationMonitoringOrchestrator,
     ReconciliationProviderRegistry,
     ReconciliationQuarantinePolicyRegistry,
+    ReconciliationQuarantinePersistencePolicy,
     ReconciliationQuarantineDecisionService,
     RECONCILIATION_ALERT_SINK,
     RECONCILIATION_ALERT_STATE_STORE,
