@@ -44,3 +44,63 @@ test('quarantine policy controller returns an empty immutable inventory when no 
   assert.deepEqual(response, { data: [] });
   assert.equal(Object.isFrozen(response.data), true);
 });
+
+test('quarantine policy controller returns bounded aggregate summary without provider identifiers', () => {
+  const registry = new ReconciliationQuarantinePolicyRegistry();
+  registry.register({ ...policy, providerId: 'provider-approved' });
+  registry.register({ ...policy, providerId: 'provider-draft', status: 'DRAFT' });
+  registry.register({ ...policy, providerId: 'provider-suspended', status: 'SUSPENDED' });
+  registry.register({
+    ...policy,
+    providerId: 'provider-raw',
+    mode: 'RAW_SOURCE',
+    retentionDays: 7,
+    allowedRoles: ['reconciliation-reviewer'],
+    replayStatus: 'MANUAL_REVIEW',
+    status: 'APPROVED',
+  });
+  const controller = new ReconciliationQuarantinePolicyController(registry);
+
+  const response = controller.summarizePolicies();
+
+  assert.deepEqual(response, {
+    data: {
+      total: 4,
+      byStatus: {
+        DRAFT: 1,
+        APPROVED: 2,
+        SUSPENDED: 1,
+      },
+      byMode: {
+        SIGNALS_ONLY: 3,
+        RAW_SOURCE: 1,
+      },
+    },
+  });
+  assert.equal(Object.isFrozen(response.data), true);
+  assert.equal(Object.isFrozen(response.data.byStatus), true);
+  assert.equal(Object.isFrozen(response.data.byMode), true);
+  assert.equal(JSON.stringify(response).includes('provider-approved'), false);
+  assert.equal(JSON.stringify(response).includes('provider-raw'), false);
+});
+
+test('quarantine policy controller returns zeroed bounded summary when registry is empty', () => {
+  const controller = new ReconciliationQuarantinePolicyController(
+    new ReconciliationQuarantinePolicyRegistry(),
+  );
+
+  assert.deepEqual(controller.summarizePolicies(), {
+    data: {
+      total: 0,
+      byStatus: {
+        DRAFT: 0,
+        APPROVED: 0,
+        SUSPENDED: 0,
+      },
+      byMode: {
+        SIGNALS_ONLY: 0,
+        RAW_SOURCE: 0,
+      },
+    },
+  });
+});
