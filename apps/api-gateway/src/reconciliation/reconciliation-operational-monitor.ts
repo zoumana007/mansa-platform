@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import type { ReconciliationMismatchReason } from '@mansa/contracts/reconciliation';
 
+import type { ReconciliationIngestionRejectionCode } from './reconciliation-ingestion-boundary';
+
 export interface ReconciliationImportOutcomeSummary {
   readonly matched: number;
   readonly mismatched: number;
@@ -11,6 +13,8 @@ export interface ReconciliationOperationalSnapshot {
   readonly importsStarted: number;
   readonly importsSucceeded: number;
   readonly importsFailed: number;
+  readonly importsQuarantined: number;
+  readonly quarantineReasons: Readonly<Record<ReconciliationIngestionRejectionCode, number>>;
   readonly importedItems: number;
   readonly matchedItems: number;
   readonly mismatchedItems: number;
@@ -30,6 +34,17 @@ const EMPTY_MISMATCH_REASONS: Record<ReconciliationMismatchReason, number> = {
   STATUS_MISMATCH: 0,
   DUPLICATE_PROVIDER_TRANSACTION: 0,
   OTHER: 0,
+};
+
+const EMPTY_QUARANTINE_REASONS: Record<ReconciliationIngestionRejectionCode, number> = {
+  PROVIDER_ID_REQUIRED: 0,
+  INVALID_PERIOD: 0,
+  EMPTY_SOURCE: 0,
+  SOURCE_TOO_LARGE: 0,
+  INVALID_PROVIDER_REFERENCE: 0,
+  INVALID_AMOUNT: 0,
+  INVALID_CURRENCY: 0,
+  INVALID_STATUS: 0,
 };
 
 function requireDurationMs(durationMs: number): number {
@@ -82,6 +97,10 @@ export class ReconciliationOperationalMonitor {
   private importsStarted = 0;
   private importsSucceeded = 0;
   private importsFailed = 0;
+  private importsQuarantined = 0;
+  private readonly quarantineReasons: Record<ReconciliationIngestionRejectionCode, number> = {
+    ...EMPTY_QUARANTINE_REASONS,
+  };
   private importedItems = 0;
   private matchedItems = 0;
   private mismatchedItems = 0;
@@ -97,6 +116,14 @@ export class ReconciliationOperationalMonitor {
   public recordImportStarted(now = new Date()): void {
     this.importsStarted += 1;
     this.lastImportStartedAt = now.toISOString();
+  }
+
+  public recordImportQuarantined(code: ReconciliationIngestionRejectionCode): void {
+    if (!(code in EMPTY_QUARANTINE_REASONS)) {
+      throw new Error('unsupported reconciliation ingestion quarantine reason');
+    }
+    this.importsQuarantined += 1;
+    this.quarantineReasons[code] += 1;
   }
 
   public recordImportSucceeded(
@@ -135,6 +162,8 @@ export class ReconciliationOperationalMonitor {
       importsStarted: this.importsStarted,
       importsSucceeded: this.importsSucceeded,
       importsFailed: this.importsFailed,
+      importsQuarantined: this.importsQuarantined,
+      quarantineReasons: Object.freeze({ ...this.quarantineReasons }),
       importedItems: this.importedItems,
       matchedItems: this.matchedItems,
       mismatchedItems: this.mismatchedItems,
