@@ -1,15 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 
+import {
+  RECONCILIATION_ALERT_STATE_STORE,
+  type ReconciliationAlertState,
+  type ReconciliationAlertStateStore,
+} from './reconciliation-alert-state-store';
 import type {
   ReconciliationSloEvaluation,
   ReconciliationSloStatus,
 } from './reconciliation-slo-policy';
 
-export type ReconciliationAlertEvent =
-  | 'WARNING'
-  | 'CRITICAL'
-  | 'RECOVERED'
-  | 'REMINDER';
+export type ReconciliationAlertEvent = 'WARNING' | 'CRITICAL' | 'RECOVERED' | 'REMINDER';
 
 export type ReconciliationAlertDecisionReason =
   | 'STATE_CHANGE'
@@ -36,153 +37,133 @@ export const DEFAULT_RECONCILIATION_ALERTING_OPTIONS: ReconciliationAlertingOpti
   cooldownMs: 15 * 60 * 1000,
 });
 
-interface ReconciliationAlertState {
-  status: ReconciliationSloStatus | null;
-  lastNotificationAtMs: number | null;
-}
+export const DEFAULT_RECONCILIATION_ALERT_STATE_KEY = 'reconciliation:alerting:global';
 
 const unhealthy = (status: ReconciliationSloStatus): status is 'WARNING' | 'CRITICAL' =>
   status === 'WARNING' || status === 'CRITICAL';
 
 const iso = (timestampMs: number): string => new Date(timestampMs).toISOString();
 
-/**
- * Provider-neutral reconciliation alert decision policy.
- *
- * This service deliberately does not call Slack, PagerDuty, SMS, email or any
- * monitoring backend. It only turns SLO evaluations into bounded notification
- * decisions with transition handling and reminder cooldowns.
- *
- * State is process-local by design. A distributed state adapter can replace it
- * later without changing the decision contract exposed by this class.
- */
 @Injectable()
 export class ReconciliationAlertingPolicy {
-  private readonly state: ReconciliationAlertState = {
+  private state: ReconciliationAlertState = {
     status: null,
     lastNotificationAtMs: null,
   };
 
+  public constructor(
+    @Optional()
+    @Inject(RECONCILIATION_ALERT_STATE_STORE)
+    private readonly sharedStateStore?: ReconciliationAlertStateStore,
+  ) {}
+
+  /**
+   * Synchronous local evaluation retained for deterministic unit tests and
+   * backward compatibility. Production dispatch should use evaluateShared().
+   */
   public evaluate(
     evaluation: ReconciliationSloEvaluation,
     evaluatedAtMs: number = Date.now(),
     options: ReconciliationAlertingOptions = DEFAULT_RECONCILIATION_ALERTING_OPTIONS,
   ): ReconciliationAlertDecision {
-    this.validateTimestamp(evaluatedAtMs);
-    this.validateOptions(options);
+    const transition = this.transition(this.state, evaluation, evaluatedAtMs, options);
+    this.state = transition.state;
+    return transition.decision;
+  }
 
-    const previousStatus = this.state.status;
-    const currentStatus = evaluation.status;
-
-    if (currentStatus === 'NO_DATA') {
-      this.state.status = currentStatus;
-      return this.decision(
-        false,
-        null,
-        'NO_DATA',
-        previousStatus,
-        currentStatus,
-        evaluatedAtMs,
-        options,
-      );
-    }
-
-    if (currentStatus === 'HEALTHY') {
-      this.state.status = currentStatus;
-      if (previousStatus !== null && unhealthy(previousStatus)) {
-        this.state.lastNotificationAtMs = evaluatedAtMs;
-        return this.decision(
-          true,
-          'RECOVERED',
-          'STATE_CHANGE',
-          previousStatus,
-          currentStatus,
-          evaluatedAtMs,
-          options,
-        );
-      }
-      return this.decision(
-        false,
-        null,
-        'HEALTHY_STEADY',
-        previousStatus,
-        currentStatus,
-        evaluatedAtMs,
-        options,
-      );
-    }
-
-    if (previousStatus !== currentStatus) {
-      this.state.status = currentStatus;
-      this.state.lastNotificationAtMs = evaluatedAtMs;
-      return this.decision(
-        true,
-        currentStatus,
-        'STATE_CHANGE',
-        previousStatus,
-        currentStatus,
-        evaluatedAtMs,
-        options,
-      );
-    }
-
-    const lastNotificationAtMs = this.state.lastNotificationAtMs;
-    if (
-      lastNotificationAtMs === null ||
-      evaluatedAtMs - lastNotificationAtMs >= options.cooldownMs
-    ) {
-      this.state.status = currentStatus;
-      this.state.lastNotificationAtMs = evaluatedAtMs;
-      return this.decision(
-        true,
-        'REMINDER',
-        'COOLDOWN_ELAPSED',
-        previousStatus,
-        currentStatus,
-        evaluatedAtMs,
-        options,
-      );
-    }
-
-    this.state.status = currentStatus;
-    return this.decision(
-      false,
-      null,
-      'COOLDOWN_ACTIVE',
-      previousStatus,
-      currentStatus,
-      evaluatedAtMs,
-      options,
+  /**
+   * Atomic provider-neutral evaluation. When a shared store is bound, all
+   * replicas use the same cooldown/state transition. The default fallback keeps
+   * the historical process-local semantics for direct construction in tests.
+   */
+  public async evaluateShared(
+    evaluation: ReconciliationSloEvaluation,
+    evaluatedAtMs: number = Date.now(),
+    options: ReconciliationAlertingOptions = DEFAULT_RECONCILIATION_ALERTING_OPTIONS,
+    stateKey: string = DEFAULT_RECONCILIATION_ALERT_STATE_KEY,
+  ): Promise<ReconciliationAlertDecision> {
+    if (!this.sharedStateStore) return this.evaluate(evaluation, evaluatedAtMs, options);
+    return this.sharedStateStore.transact(stateKey, (state) =>
+      this.transition(state, evaluation, evaluatedAtMs, options),
     );
   }
 
   public reset(): void {
-    this.state.status = null;
-    this.state.lastNotificationAtMs = null;
+    this.state = { status: null, lastNotificationAtMs: null };
   }
 
-  private decision(
-    shouldNotify: boolean,
-    event: ReconciliationAlertEvent | null,
-    reason: ReconciliationAlertDecisionReason,
-    previousStatus: ReconciliationSloStatus | null,
-    currentStatus: ReconciliationSloStatus,
+  public async resetShared(stateKey: string = DEFAULT_RECONCILIATION_ALERT_STATE_KEY): Promise<void> {
+    if (!this.sharedStateStore) {
+      this.reset();
+      return;
+    }
+    await this.sharedStateStore.reset(stateKey);
+  }
+
+  private transition(
+    state: ReconciliationAlertState,
+    evaluation: ReconciliationSloEvaluation,
     evaluatedAtMs: number,
     options: ReconciliationAlertingOptions,
-  ): ReconciliationAlertDecision {
-    const lastNotificationAtMs = this.state.lastNotificationAtMs;
-    return Object.freeze({
-      shouldNotify,
-      event,
-      reason,
-      previousStatus,
-      currentStatus,
-      evaluatedAt: iso(evaluatedAtMs),
-      nextEligibleReminderAt:
-        unhealthy(currentStatus) && lastNotificationAtMs !== null
-          ? iso(lastNotificationAtMs + options.cooldownMs)
-          : null,
-    });
+  ): { readonly state: ReconciliationAlertState; readonly decision: ReconciliationAlertDecision } {
+    this.validateTimestamp(evaluatedAtMs);
+    this.validateOptions(options);
+
+    const previousStatus = state.status;
+    const currentStatus = evaluation.status;
+    let nextState: ReconciliationAlertState = state;
+    let shouldNotify = false;
+    let event: ReconciliationAlertEvent | null = null;
+    let reason: ReconciliationAlertDecisionReason;
+
+    if (currentStatus === 'NO_DATA') {
+      nextState = { ...state, status: currentStatus };
+      reason = 'NO_DATA';
+    } else if (currentStatus === 'HEALTHY') {
+      nextState = { ...state, status: currentStatus };
+      if (previousStatus !== null && unhealthy(previousStatus)) {
+        nextState = { status: currentStatus, lastNotificationAtMs: evaluatedAtMs };
+        shouldNotify = true;
+        event = 'RECOVERED';
+        reason = 'STATE_CHANGE';
+      } else {
+        reason = 'HEALTHY_STEADY';
+      }
+    } else if (previousStatus !== currentStatus) {
+      nextState = { status: currentStatus, lastNotificationAtMs: evaluatedAtMs };
+      shouldNotify = true;
+      event = currentStatus;
+      reason = 'STATE_CHANGE';
+    } else if (
+      state.lastNotificationAtMs === null ||
+      evaluatedAtMs - state.lastNotificationAtMs >= options.cooldownMs
+    ) {
+      nextState = { status: currentStatus, lastNotificationAtMs: evaluatedAtMs };
+      shouldNotify = true;
+      event = 'REMINDER';
+      reason = 'COOLDOWN_ELAPSED';
+    } else {
+      nextState = { ...state, status: currentStatus };
+      reason = 'COOLDOWN_ACTIVE';
+    }
+
+    const nextEligibleReminderAt =
+      unhealthy(currentStatus) && nextState.lastNotificationAtMs !== null
+        ? iso(nextState.lastNotificationAtMs + options.cooldownMs)
+        : null;
+
+    return {
+      state: Object.freeze({ ...nextState }),
+      decision: Object.freeze({
+        shouldNotify,
+        event,
+        reason,
+        previousStatus,
+        currentStatus,
+        evaluatedAt: iso(evaluatedAtMs),
+        nextEligibleReminderAt,
+      }),
+    };
   }
 
   private validateTimestamp(value: number): void {
