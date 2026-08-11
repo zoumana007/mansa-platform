@@ -82,6 +82,20 @@ export class ReconciliationQuarantinePolicyRegistry {
     return this.policies.has(providerId.trim());
   }
 
+  /**
+   * Retourne un inventaire en lecture seule, stable et indépendant de l'ordre
+   * d'enregistrement. Le snapshot contient uniquement les métadonnées de
+   * politique déjà présentes dans le registre : aucun payload fournisseur ni
+   * secret opérationnel n'est ajouté par cette vue.
+   */
+  public snapshot(): readonly ReconciliationQuarantineProviderPolicy[] {
+    return Object.freeze(
+      [...this.policies.values()]
+        .sort((left, right) => left.providerId.localeCompare(right.providerId))
+        .map((policy) => freezePolicy(policy)),
+    );
+  }
+
   private assertPolicyIsCoherent(policy: ReconciliationQuarantineProviderPolicy): void {
     if (policy.allowedRoles.some((role) => role.trim().length === 0)) {
       throw new Error('reconciliation quarantine policy contains an empty allowed role');
