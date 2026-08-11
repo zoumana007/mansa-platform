@@ -19,6 +19,12 @@ export interface ReconciliationQuarantineProviderPolicy {
   readonly status: ReconciliationQuarantinePolicyStatus;
 }
 
+export interface ReconciliationQuarantinePolicySummary {
+  readonly total: number;
+  readonly byStatus: Readonly<Record<ReconciliationQuarantinePolicyStatus, number>>;
+  readonly byMode: Readonly<Record<ReconciliationQuarantinePolicyMode, number>>;
+}
+
 function freezePolicy(
   policy: ReconciliationQuarantineProviderPolicy,
 ): ReconciliationQuarantineProviderPolicy {
@@ -94,6 +100,35 @@ export class ReconciliationQuarantinePolicyRegistry {
         .sort((left, right) => left.providerId.localeCompare(right.providerId))
         .map((policy) => freezePolicy(policy)),
     );
+  }
+
+  /**
+   * Produit un résumé à cardinalité bornée pour la supervision interne.
+   * Aucun providerId ni autre identifiant fournisseur n'est exposé : seuls le
+   * total global et les compteurs sur les enums bornées status/mode sortent du
+   * registre.
+   */
+  public summary(): ReconciliationQuarantinePolicySummary {
+    const byStatus: Record<ReconciliationQuarantinePolicyStatus, number> = {
+      DRAFT: 0,
+      APPROVED: 0,
+      SUSPENDED: 0,
+    };
+    const byMode: Record<ReconciliationQuarantinePolicyMode, number> = {
+      SIGNALS_ONLY: 0,
+      RAW_SOURCE: 0,
+    };
+
+    for (const policy of this.policies.values()) {
+      byStatus[policy.status] += 1;
+      byMode[policy.mode] += 1;
+    }
+
+    return Object.freeze({
+      total: this.policies.size,
+      byStatus: Object.freeze({ ...byStatus }),
+      byMode: Object.freeze({ ...byMode }),
+    });
   }
 
   private assertPolicyIsCoherent(policy: ReconciliationQuarantineProviderPolicy): void {
