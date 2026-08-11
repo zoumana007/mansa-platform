@@ -38,13 +38,6 @@ export interface ReconciliationAlertDispatchResult {
   readonly delivered: boolean;
 }
 
-/**
- * Connects the provider-neutral alert decision policy to a provider-neutral sink.
- *
- * The default sink is deliberately a no-op. Production integrations (PagerDuty,
- * Slack, email, SMS, incident tooling, etc.) must implement ReconciliationAlertSink
- * and be bound through RECONCILIATION_ALERT_SINK without changing business logic.
- */
 @Injectable()
 export class ReconciliationAlertDispatcher {
   public constructor(
@@ -58,7 +51,7 @@ export class ReconciliationAlertDispatcher {
     evaluatedAtMs: number = Date.now(),
     options: ReconciliationAlertingOptions = DEFAULT_RECONCILIATION_ALERTING_OPTIONS,
   ): Promise<ReconciliationAlertDispatchResult> {
-    const decision = this.policy.evaluate(evaluation, evaluatedAtMs, options);
+    const decision = await this.policy.evaluateShared(evaluation, evaluatedAtMs, options);
 
     if (!decision.shouldNotify || decision.event === null) {
       return Object.freeze({ decision, delivered: false });
