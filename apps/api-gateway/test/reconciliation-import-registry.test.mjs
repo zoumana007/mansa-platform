@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { ReconciliationImportService } from '../dist/reconciliation/reconciliation-import.service.js';
+import { ReconciliationIngestionQuarantineError } from '../dist/reconciliation/reconciliation-ingestion-quarantine.error.js';
 import { TestReconciliationProviderAdapter } from '../dist/reconciliation/reconciliation-provider.adapter.js';
 import { ReconciliationProviderRegistry } from '../dist/reconciliation/reconciliation-provider-registry.js';
 
@@ -81,6 +82,33 @@ test('unknown provider fails closed and records failed import', async () => {
   await assert.rejects(
     harness.service.importProviderSource('org-1', { ...source, providerId: 'REAL-BANK' }, internalRows),
     /no reconciliation adapter registered/,
+  );
+
+  assert.equal(harness.imported.length, 0);
+  assert.deepEqual(harness.events, ['started', 'failed']);
+});
+
+test('malformed provider source is quarantined before adapter resolution or persistence', async () => {
+  const harness = buildHarness();
+
+  await assert.rejects(
+    harness.service.importProviderSource(
+      'org-1',
+      {
+        ...source,
+        providerId: 'UNKNOWN-BANK',
+        rows: [{ providerReference: 'bad-1', amountMinor: -1, currency: 'XOF', status: 'SETTLED' }],
+      },
+      internalRows,
+    ),
+    (error) => {
+      assert.ok(error instanceof ReconciliationIngestionQuarantineError);
+      assert.equal(error.code, 'INVALID_AMOUNT');
+      assert.equal(error.rowIndex, 0);
+      assert.match(error.sourceFingerprint, /^[a-f0-9]{64}$/);
+      assert.equal(error.rowCount, 1);
+      return true;
+    },
   );
 
   assert.equal(harness.imported.length, 0);
