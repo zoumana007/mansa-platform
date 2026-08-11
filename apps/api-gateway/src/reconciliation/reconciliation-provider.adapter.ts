@@ -107,6 +107,12 @@ function hashJson(value: unknown): string {
  * format bancaire réel ni d'un secret fournisseur.
  */
 export class TestReconciliationProviderAdapter {
+  public readonly adapterId = 'test-normalized-v1';
+
+  public supports(providerId: string): boolean {
+    return providerId.trim().toUpperCase().startsWith('TEST');
+  }
+
   public prepare(
     source: ProviderReconciliationSource,
     internalRows: readonly InternalReconciliationRow[],
