@@ -32,6 +32,7 @@ export class ReconciliationImportService {
     try {
       const ingestionDecision = this.ingestionBoundary.evaluate(source);
       if (!ingestionDecision.accepted) {
+        this.monitor.recordImportQuarantined(ingestionDecision.code);
         throw new ReconciliationIngestionQuarantineError(ingestionDecision);
       }
 
