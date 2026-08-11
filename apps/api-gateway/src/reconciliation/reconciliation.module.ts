@@ -10,6 +10,10 @@ import {
   RECONCILIATION_ALERT_SINK,
   ReconciliationAlertDispatcher,
 } from './reconciliation-alert-dispatcher';
+import {
+  InMemoryReconciliationAlertStateStore,
+  RECONCILIATION_ALERT_STATE_STORE,
+} from './reconciliation-alert-state-store';
 import { ReconciliationAlertingPolicy } from './reconciliation-alerting-policy';
 import { ReconciliationController } from './reconciliation.controller';
 import { ReconciliationImportService } from './reconciliation-import.service';
@@ -37,6 +41,7 @@ import { ReconciliationSloPolicy } from './reconciliation-slo-policy';
     ReconciliationAlertDispatcher,
     ReconciliationMonitoringOrchestrator,
     NoopReconciliationAlertSink,
+    InMemoryReconciliationAlertStateStore,
     LowCardinalityReconciliationMetricsExporter,
     TestReconciliationProviderAdapter,
     {
@@ -63,6 +68,10 @@ import { ReconciliationSloPolicy } from './reconciliation-slo-policy';
       provide: RECONCILIATION_ALERT_SINK,
       useExisting: NoopReconciliationAlertSink,
     },
+    {
+      provide: RECONCILIATION_ALERT_STATE_STORE,
+      useExisting: InMemoryReconciliationAlertStateStore,
+    },
   ],
   exports: [
     ReconciliationImportService,
@@ -73,6 +82,7 @@ import { ReconciliationSloPolicy } from './reconciliation-slo-policy';
     ReconciliationMonitoringOrchestrator,
     ReconciliationProviderRegistry,
     RECONCILIATION_ALERT_SINK,
+    RECONCILIATION_ALERT_STATE_STORE,
     LowCardinalityReconciliationMetricsExporter,
     RECONCILIATION_METRICS_EXPORTER,
     ReconciliationRepository,
