@@ -50,7 +50,8 @@ export class InMemoryReconciliationAlertStateStore implements ReconciliationAler
     const current = new Promise<void>((resolve) => {
       release = resolve;
     });
-    this.queues.set(normalizedKey, previous.then(() => current));
+    const queued = previous.then(() => current);
+    this.queues.set(normalizedKey, queued);
 
     await previous;
     try {
@@ -60,7 +61,7 @@ export class InMemoryReconciliationAlertStateStore implements ReconciliationAler
       return next.result;
     } finally {
       release();
-      if (this.queues.get(normalizedKey) === current) this.queues.delete(normalizedKey);
+      if (this.queues.get(normalizedKey) === queued) this.queues.delete(normalizedKey);
     }
   }
 
