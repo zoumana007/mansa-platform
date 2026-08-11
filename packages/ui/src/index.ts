@@ -116,3 +116,17 @@ export function createUiTheme(palette: SemanticPaletteInput): MansaUiTheme {
     motion,
   });
 }
+
+export {
+  accessibility,
+  createControlSemantics,
+  focusRing,
+  interactionOpacity,
+} from './interaction.js';
+export type {
+  ControlEmphasis,
+  ControlIntent,
+  ControlSemantics,
+  ControlSemanticsInput,
+  ControlState,
+} from './interaction.js';
