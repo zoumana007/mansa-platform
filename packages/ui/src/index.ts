@@ -139,3 +139,5 @@ export type {
   FeedbackSemanticsInput,
   FeedbackTone,
 } from './feedback.js';
+export { createProgressSemantics } from './progress.js';
+export type { ProgressSemantics, ProgressSemanticsInput, ProgressState } from './progress.js';
