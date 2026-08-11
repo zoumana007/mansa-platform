@@ -130,3 +130,5 @@ export type {
   ControlSemanticsInput,
   ControlState,
 } from './interaction.js';
+export { createFieldSemantics } from './form.js';
+export type { FieldSemantics, FieldSemanticsInput, FieldStatus } from './form.js';
