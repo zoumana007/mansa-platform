@@ -112,6 +112,64 @@ test('quarantine policy controller returns zeroed bounded summary when registry 
   });
 });
 
+test('quarantine policy health distinguishes empty configuration', () => {
+  const controller = new ReconciliationQuarantinePolicyController(
+    new ReconciliationQuarantinePolicyRegistry(),
+  );
+
+  assert.deepEqual(controller.getConfigurationHealth(), {
+    data: {
+      status: 'EMPTY',
+      configured: false,
+      ready: false,
+      policyCount: 0,
+      approvedPolicyCount: 0,
+    },
+  });
+});
+
+test('quarantine policy health distinguishes configured but unusable state', () => {
+  const registry = new ReconciliationQuarantinePolicyRegistry();
+  registry.register({ ...policy, providerId: 'provider-draft', status: 'DRAFT' });
+  registry.register({ ...policy, providerId: 'provider-suspended', status: 'SUSPENDED' });
+  const controller = new ReconciliationQuarantinePolicyController(registry);
+
+  const response = controller.getConfigurationHealth();
+
+  assert.deepEqual(response, {
+    data: {
+      status: 'NOT_READY',
+      configured: true,
+      ready: false,
+      policyCount: 2,
+      approvedPolicyCount: 0,
+    },
+  });
+  assert.equal(JSON.stringify(response).includes('provider-draft'), false);
+  assert.equal(JSON.stringify(response).includes('provider-suspended'), false);
+});
+
+test('quarantine policy health reports ready when at least one approved policy exists', () => {
+  const registry = new ReconciliationQuarantinePolicyRegistry();
+  registry.register({ ...policy, providerId: 'provider-approved' });
+  registry.register({ ...policy, providerId: 'provider-draft', status: 'DRAFT' });
+  const controller = new ReconciliationQuarantinePolicyController(registry);
+
+  const response = controller.getConfigurationHealth();
+
+  assert.deepEqual(response, {
+    data: {
+      status: 'READY',
+      configured: true,
+      ready: true,
+      policyCount: 2,
+      approvedPolicyCount: 1,
+    },
+  });
+  assert.equal(Object.isFrozen(response.data), true);
+  assert.equal(JSON.stringify(response).includes('provider-approved'), false);
+});
+
 test('quarantine policy controller keeps both internal workload guards at class level', () => {
   const guards = Reflect.getMetadata(GUARDS_METADATA, ReconciliationQuarantinePolicyController);
 
@@ -131,6 +189,15 @@ test('quarantine policy inventory endpoint requires reconciliation read scope', 
   const requiredScopes = Reflect.getMetadata(
     WORKLOAD_SCOPES_METADATA,
     ReconciliationQuarantinePolicyController.prototype.listPolicies,
+  );
+
+  assert.deepEqual(requiredScopes, ['reconciliation:read']);
+});
+
+test('quarantine policy health endpoint requires reconciliation read scope', () => {
+  const requiredScopes = Reflect.getMetadata(
+    WORKLOAD_SCOPES_METADATA,
+    ReconciliationQuarantinePolicyController.prototype.getConfigurationHealth,
   );
 
   assert.deepEqual(requiredScopes, ['reconciliation:read']);
