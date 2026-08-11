@@ -7,9 +7,10 @@ import { ReconciliationQuarantinePolicyRegistry } from './reconciliation-quarant
 /**
  * Vue de contrôle interne des politiques de quarantaine configurées.
  *
- * Cette route n'expose que les métadonnées provider-neutral déjà présentes
- * dans le registre. Elle ne retourne aucun payload fournisseur, secret,
- * identifiant bancaire ou contenu de quarantaine.
+ * Ces routes n'exposent que les métadonnées provider-neutral déjà présentes
+ * dans le registre ou des agrégats à cardinalité bornée. Elles ne retournent
+ * aucun payload fournisseur, secret, identifiant bancaire ou contenu de
+ * quarantaine.
  */
 @UseGuards(WorkloadIdentityGuard, WorkloadScopeGuard)
 @Controller({ path: 'internal/reconciliation', version: '1' })
@@ -20,5 +21,11 @@ export class ReconciliationQuarantinePolicyController {
   @RequireWorkloadScopes('reconciliation:read')
   public listPolicies() {
     return { data: this.registry.snapshot() };
+  }
+
+  @Get('quarantine-policies/summary')
+  @RequireWorkloadScopes('reconciliation:read')
+  public summarizePolicies() {
+    return { data: this.registry.summary() };
   }
 }
