@@ -3,25 +3,33 @@ import test from 'node:test';
 
 import { ReconciliationOperationalMonitor } from '../dist/reconciliation/reconciliation-operational-monitor.js';
 
+const emptyQuarantineReasons = {
+  PROVIDER_ID_REQUIRED: 0,
+  INVALID_PERIOD: 0,
+  EMPTY_SOURCE: 0,
+  SOURCE_TOO_LARGE: 0,
+  INVALID_PROVIDER_REFERENCE: 0,
+  INVALID_AMOUNT: 0,
+  INVALID_CURRENCY: 0,
+  INVALID_STATUS: 0,
+};
+
 test('reconciliation monitor records successful imports without sensitive payloads', () => {
   const monitor = new ReconciliationOperationalMonitor();
   const startedAt = new Date('2026-08-10T17:00:00.000Z');
   const succeededAt = new Date('2026-08-10T17:00:01.000Z');
-
   monitor.recordImportStarted(startedAt);
   monitor.recordImportSucceeded(4, succeededAt, 125.5, {
     matched: 2,
     mismatched: 2,
-    byReason: {
-      AMOUNT_MISMATCH: 1,
-      MISSING_PROVIDER_TRANSACTION: 1,
-    },
+    byReason: { AMOUNT_MISMATCH: 1, MISSING_PROVIDER_TRANSACTION: 1 },
   });
-
   assert.deepEqual(monitor.snapshot(), {
     importsStarted: 1,
     importsSucceeded: 1,
     importsFailed: 0,
+    importsQuarantined: 0,
+    quarantineReasons: emptyQuarantineReasons,
     importedItems: 4,
     matchedItems: 2,
     mismatchedItems: 2,
@@ -44,7 +52,6 @@ test('reconciliation monitor records successful imports without sensitive payloa
 
 test('reconciliation monitor accumulates bounded outcome aggregates across imports', () => {
   const monitor = new ReconciliationOperationalMonitor();
-
   monitor.recordImportSucceeded(3, new Date(), 10, {
     matched: 1,
     mismatched: 2,
@@ -55,7 +62,6 @@ test('reconciliation monitor accumulates bounded outcome aggregates across impor
     mismatched: 1,
     byReason: { CURRENCY_MISMATCH: 1 },
   });
-
   const snapshot = monitor.snapshot();
   assert.equal(snapshot.importedItems, 5);
   assert.equal(snapshot.matchedItems, 2);
@@ -64,13 +70,23 @@ test('reconciliation monitor accumulates bounded outcome aggregates across impor
   assert.equal(snapshot.mismatchReasons.STATUS_MISMATCH, 1);
 });
 
+test('reconciliation monitor records bounded quarantine reasons', () => {
+  const monitor = new ReconciliationOperationalMonitor();
+  monitor.recordImportQuarantined('INVALID_AMOUNT');
+  monitor.recordImportQuarantined('INVALID_AMOUNT');
+  monitor.recordImportQuarantined('EMPTY_SOURCE');
+  const snapshot = monitor.snapshot();
+  assert.equal(snapshot.importsQuarantined, 3);
+  assert.equal(snapshot.quarantineReasons.INVALID_AMOUNT, 2);
+  assert.equal(snapshot.quarantineReasons.EMPTY_SOURCE, 1);
+  assert.equal(snapshot.quarantineReasons.INVALID_STATUS, 0);
+});
+
 test('reconciliation monitor records failures and duration independently from successes', () => {
   const monitor = new ReconciliationOperationalMonitor();
   const failedAt = new Date('2026-08-10T17:01:00.000Z');
-
   monitor.recordImportStarted();
   monitor.recordImportFailed(failedAt, 80.25);
-
   const snapshot = monitor.snapshot();
   assert.equal(snapshot.importsStarted, 1);
   assert.equal(snapshot.importsSucceeded, 0);
@@ -85,10 +101,8 @@ test('reconciliation monitor records failures and duration independently from su
 
 test('reconciliation monitor accumulates completed import duration across outcomes', () => {
   const monitor = new ReconciliationOperationalMonitor();
-
   monitor.recordImportSucceeded(2, new Date(), 10.5);
   monitor.recordImportFailed(new Date(), 4.25);
-
   const snapshot = monitor.snapshot();
   assert.equal(snapshot.completedImportDurationMsTotal, 14.75);
   assert.equal(snapshot.lastCompletedImportDurationMs, 4.25);
@@ -96,39 +110,17 @@ test('reconciliation monitor accumulates completed import duration across outcom
 
 test('reconciliation monitor rejects inconsistent or invalid outcome aggregates', () => {
   const monitor = new ReconciliationOperationalMonitor();
-
   assert.throws(() => monitor.recordImportSucceeded(-1), /non-negative safe integer/);
+  assert.throws(() => monitor.recordImportSucceeded(Number.MAX_SAFE_INTEGER + 1), /non-negative safe integer/);
   assert.throws(
-    () => monitor.recordImportSucceeded(Number.MAX_SAFE_INTEGER + 1),
-    /non-negative safe integer/,
-  );
-  assert.throws(
-    () =>
-      monitor.recordImportSucceeded(2, new Date(), 1, {
-        matched: 2,
-        mismatched: 1,
-      }),
+    () => monitor.recordImportSucceeded(2, new Date(), 1, { matched: 2, mismatched: 1 }),
     /must equal itemCount/,
   );
   assert.throws(
-    () =>
-      monitor.recordImportSucceeded(1, new Date(), 1, {
-        matched: 0,
-        mismatched: 1,
-        byReason: { AMOUNT_MISMATCH: 2 },
-      }),
+    () => monitor.recordImportSucceeded(1, new Date(), 1, { matched: 0, mismatched: 1, byReason: { AMOUNT_MISMATCH: 2 } }),
     /cannot exceed outcome.mismatched/,
   );
-  assert.throws(
-    () => monitor.recordImportSucceeded(1, new Date(), -1),
-    /finite non-negative number/,
-  );
-  assert.throws(
-    () => monitor.recordImportFailed(new Date(), Number.NaN),
-    /finite non-negative number/,
-  );
-  assert.throws(
-    () => monitor.recordImportFailed(new Date(), Number.POSITIVE_INFINITY),
-    /finite non-negative number/,
-  );
+  assert.throws(() => monitor.recordImportSucceeded(1, new Date(), -1), /finite non-negative number/);
+  assert.throws(() => monitor.recordImportFailed(new Date(), Number.NaN), /finite non-negative number/);
+  assert.throws(() => monitor.recordImportFailed(new Date(), Number.POSITIVE_INFINITY), /finite non-negative number/);
 });
