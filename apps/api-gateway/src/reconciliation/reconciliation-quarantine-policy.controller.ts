@@ -28,4 +28,10 @@ export class ReconciliationQuarantinePolicyController {
   public summarizePolicies() {
     return { data: this.registry.summary() };
   }
+
+  @Get('quarantine-policies/health')
+  @RequireWorkloadScopes('reconciliation:read')
+  public getConfigurationHealth() {
+    return { data: this.registry.health() };
+  }
 }
