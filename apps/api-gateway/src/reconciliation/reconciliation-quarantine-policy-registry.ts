@@ -100,7 +100,9 @@ export class ReconciliationQuarantinePolicyRegistry {
     if (policy.status !== 'APPROVED') {
       throw new Error('raw reconciliation quarantine policy must be explicitly approved');
     }
-    if (!Number.isInteger(policy.retentionDays) || (policy.retentionDays ?? 0) <= 0) {
+
+    const retentionDays = policy.retentionDays;
+    if (retentionDays === null || !Number.isInteger(retentionDays) || retentionDays <= 0) {
       throw new Error('raw reconciliation quarantine policy requires a positive retentionDays');
     }
     if (!policy.encryptionAtRestRequired || !policy.encryptionInTransitRequired) {
