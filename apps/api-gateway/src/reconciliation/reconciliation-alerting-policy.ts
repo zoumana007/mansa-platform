@@ -57,10 +57,6 @@ export class ReconciliationAlertingPolicy {
     private readonly sharedStateStore?: ReconciliationAlertStateStore,
   ) {}
 
-  /**
-   * Synchronous local evaluation retained for deterministic unit tests and
-   * backward compatibility. Production dispatch should use evaluateShared().
-   */
   public evaluate(
     evaluation: ReconciliationSloEvaluation,
     evaluatedAtMs: number = Date.now(),
@@ -71,11 +67,6 @@ export class ReconciliationAlertingPolicy {
     return transition.decision;
   }
 
-  /**
-   * Atomic provider-neutral evaluation. When a shared store is bound, all
-   * replicas use the same cooldown/state transition. The default fallback keeps
-   * the historical process-local semantics for direct construction in tests.
-   */
   public async evaluateShared(
     evaluation: ReconciliationSloEvaluation,
     evaluatedAtMs: number = Date.now(),
@@ -83,9 +74,10 @@ export class ReconciliationAlertingPolicy {
     stateKey: string = DEFAULT_RECONCILIATION_ALERT_STATE_KEY,
   ): Promise<ReconciliationAlertDecision> {
     if (!this.sharedStateStore) return this.evaluate(evaluation, evaluatedAtMs, options);
-    return this.sharedStateStore.transact(stateKey, (state) =>
-      this.transition(state, evaluation, evaluatedAtMs, options),
-    );
+    return this.sharedStateStore.transact(stateKey, (state) => {
+      const transition = this.transition(state, evaluation, evaluatedAtMs, options);
+      return { state: transition.state, result: transition.decision };
+    });
   }
 
   public reset(): void {
