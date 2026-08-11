@@ -1,3 +1,5 @@
+import { Injectable } from '@nestjs/common';
+
 export type ReconciliationQuarantinePersistenceMode = 'SIGNALS_ONLY' | 'RAW_SOURCE';
 
 export interface ReconciliationQuarantinePersistencePlan {
@@ -16,7 +18,12 @@ export interface ReconciliationQuarantinePersistencePlan {
  * approuvée, la plateforme ne doit conserver que les signaux bornés déjà
  * exposés par l'observabilité. Aucun payload fournisseur rejeté ne doit être
  * persisté par ce composant.
+ *
+ * Cette garde est injectable afin qu'un seul point de décision technique soit
+ * partagé par les services NestJS. Un appel direct reste possible dans les
+ * tests unitaires et conserve le mode fermé par défaut.
  */
+@Injectable()
 export class ReconciliationQuarantinePersistencePolicy {
   public constructor(mode: ReconciliationQuarantinePersistenceMode = 'SIGNALS_ONLY') {
     if (mode !== 'SIGNALS_ONLY') {
