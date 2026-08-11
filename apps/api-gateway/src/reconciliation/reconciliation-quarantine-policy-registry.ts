@@ -6,6 +6,10 @@ export type ReconciliationQuarantineDataClassification =
 export type ReconciliationQuarantinePolicyMode = 'SIGNALS_ONLY' | 'RAW_SOURCE';
 export type ReconciliationQuarantineReplayStatus = 'DISABLED' | 'MANUAL_REVIEW';
 export type ReconciliationQuarantinePolicyStatus = 'DRAFT' | 'APPROVED' | 'SUSPENDED';
+export type ReconciliationQuarantineConfigurationHealthStatus =
+  | 'EMPTY'
+  | 'NOT_READY'
+  | 'READY';
 
 export interface ReconciliationQuarantineProviderPolicy {
   readonly providerId: string;
@@ -23,6 +27,14 @@ export interface ReconciliationQuarantinePolicySummary {
   readonly total: number;
   readonly byStatus: Readonly<Record<ReconciliationQuarantinePolicyStatus, number>>;
   readonly byMode: Readonly<Record<ReconciliationQuarantinePolicyMode, number>>;
+}
+
+export interface ReconciliationQuarantineConfigurationHealth {
+  readonly status: ReconciliationQuarantineConfigurationHealthStatus;
+  readonly configured: boolean;
+  readonly ready: boolean;
+  readonly policyCount: number;
+  readonly approvedPolicyCount: number;
 }
 
 function freezePolicy(
@@ -128,6 +140,37 @@ export class ReconciliationQuarantinePolicyRegistry {
       total: this.policies.size,
       byStatus: Object.freeze({ ...byStatus }),
       byMode: Object.freeze({ ...byMode }),
+    });
+  }
+
+  /**
+   * Expose uniquement un état de configuration à faible cardinalité.
+   *
+   * EMPTY distingue l'absence totale de politique. NOT_READY signale qu'une
+   * configuration existe mais qu'aucune politique n'est approuvée, donc qu'un
+   * chemin métier qui exige resolve() resterait fail-closed. READY signifie
+   * qu'au moins une politique approuvée est disponible. Aucun providerId,
+   * rôle, paramètre de rétention ou détail de classification n'est exposé.
+   */
+  public health(): ReconciliationQuarantineConfigurationHealth {
+    const policyCount = this.policies.size;
+    let approvedPolicyCount = 0;
+
+    for (const policy of this.policies.values()) {
+      if (policy.status === 'APPROVED') {
+        approvedPolicyCount += 1;
+      }
+    }
+
+    const status: ReconciliationQuarantineConfigurationHealthStatus =
+      policyCount === 0 ? 'EMPTY' : approvedPolicyCount === 0 ? 'NOT_READY' : 'READY';
+
+    return Object.freeze({
+      status,
+      configured: policyCount > 0,
+      ready: approvedPolicyCount > 0,
+      policyCount,
+      approvedPolicyCount,
     });
   }
 
