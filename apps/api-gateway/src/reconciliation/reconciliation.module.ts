@@ -28,12 +28,17 @@ import { ReconciliationProviderRegistry } from './reconciliation-provider-regist
 import { TestReconciliationProviderAdapter } from './reconciliation-provider.adapter';
 import { ReconciliationQuarantineDecisionService } from './reconciliation-quarantine-decision.service';
 import { ReconciliationQuarantinePersistencePolicy } from './reconciliation-quarantine-persistence-policy';
+import { ReconciliationQuarantinePolicyController } from './reconciliation-quarantine-policy.controller';
 import { ReconciliationQuarantinePolicyRegistry } from './reconciliation-quarantine-policy-registry';
 import { ReconciliationRepository } from './reconciliation.repository';
 import { ReconciliationSloPolicy } from './reconciliation-slo-policy';
 
 @Module({
-  controllers: [ReconciliationController, ReconciliationMetricsController],
+  controllers: [
+    ReconciliationController,
+    ReconciliationMetricsController,
+    ReconciliationQuarantinePolicyController,
+  ],
   providers: [
     PrismaService,
     ReconciliationRepository,
