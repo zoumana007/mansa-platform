@@ -30,10 +30,10 @@ export interface ReconciliationQuarantineDecision {
  */
 @Injectable()
 export class ReconciliationQuarantineDecisionService {
-  private readonly persistencePolicy = new ReconciliationQuarantinePersistencePolicy();
-
   public constructor(
     private readonly policyRegistry: ReconciliationQuarantinePolicyRegistry,
+    private readonly persistencePolicy: ReconciliationQuarantinePersistencePolicy =
+      new ReconciliationQuarantinePersistencePolicy(),
   ) {}
 
   public evaluate(providerId: string): ReconciliationQuarantineDecision {
