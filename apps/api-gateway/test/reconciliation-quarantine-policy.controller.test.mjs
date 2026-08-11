@@ -3,6 +3,13 @@ import test from 'node:test';
 
 import { ReconciliationQuarantinePolicyController } from '../dist/reconciliation/reconciliation-quarantine-policy.controller.js';
 import { ReconciliationQuarantinePolicyRegistry } from '../dist/reconciliation/reconciliation-quarantine-policy-registry.js';
+import { WorkloadIdentityGuard } from '../dist/workload-identity.guard.js';
+import {
+  WORKLOAD_SCOPES_METADATA,
+  WorkloadScopeGuard,
+} from '../dist/workload-scope.guard.js';
+
+const GUARDS_METADATA = '__guards__';
 
 const policy = {
   providerId: 'provider-test',
@@ -103,4 +110,28 @@ test('quarantine policy controller returns zeroed bounded summary when registry 
       },
     },
   });
+});
+
+test('quarantine policy controller keeps both internal workload guards at class level', () => {
+  const guards = Reflect.getMetadata(GUARDS_METADATA, ReconciliationQuarantinePolicyController);
+
+  assert.deepEqual(guards, [WorkloadIdentityGuard, WorkloadScopeGuard]);
+});
+
+test('quarantine policy summary endpoint requires reconciliation read scope', () => {
+  const requiredScopes = Reflect.getMetadata(
+    WORKLOAD_SCOPES_METADATA,
+    ReconciliationQuarantinePolicyController.prototype.summarizePolicies,
+  );
+
+  assert.deepEqual(requiredScopes, ['reconciliation:read']);
+});
+
+test('quarantine policy inventory endpoint requires reconciliation read scope', () => {
+  const requiredScopes = Reflect.getMetadata(
+    WORKLOAD_SCOPES_METADATA,
+    ReconciliationQuarantinePolicyController.prototype.listPolicies,
+  );
+
+  assert.deepEqual(requiredScopes, ['reconciliation:read']);
 });
