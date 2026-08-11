@@ -132,3 +132,10 @@ export type {
 } from './interaction.js';
 export { createFieldSemantics } from './form.js';
 export type { FieldSemantics, FieldSemanticsInput, FieldStatus } from './form.js';
+export { createFeedbackSemantics } from './feedback.js';
+export type {
+  FeedbackPoliteness,
+  FeedbackSemantics,
+  FeedbackSemanticsInput,
+  FeedbackTone,
+} from './feedback.js';
