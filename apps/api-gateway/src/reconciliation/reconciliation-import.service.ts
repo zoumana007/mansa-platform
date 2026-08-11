@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { summarizeReconciliationComparisons } from '@mansa/contracts/reconciliation';
 import { performance } from 'node:perf_hooks';
 
+import { ReconciliationIngestionBoundary } from './reconciliation-ingestion-boundary';
+import { ReconciliationIngestionQuarantineError } from './reconciliation-ingestion-quarantine.error';
 import { ReconciliationOperationalMonitor } from './reconciliation-operational-monitor';
 import { ReconciliationProviderRegistry } from './reconciliation-provider-registry';
 import { ReconciliationRepository } from './reconciliation.repository';
@@ -12,6 +14,8 @@ import type {
 
 @Injectable()
 export class ReconciliationImportService {
+  private readonly ingestionBoundary = new ReconciliationIngestionBoundary();
+
   public constructor(
     private readonly repository: ReconciliationRepository,
     private readonly providerRegistry: ReconciliationProviderRegistry,
@@ -26,6 +30,11 @@ export class ReconciliationImportService {
     const startedMonotonicMs = performance.now();
     this.monitor.recordImportStarted();
     try {
+      const ingestionDecision = this.ingestionBoundary.evaluate(source);
+      if (!ingestionDecision.accepted) {
+        throw new ReconciliationIngestionQuarantineError(ingestionDecision);
+      }
+
       const adapter = this.providerRegistry.resolve(source.providerId);
       const prepared = adapter.prepare(source, internalRows);
 
