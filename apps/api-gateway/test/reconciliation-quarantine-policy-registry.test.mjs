@@ -89,3 +89,43 @@ test('quarantine policy registry refuses duplicate provider policy', () => {
 
   assert.throws(() => registry.register(approvedSignalsPolicy), /already registered/);
 });
+
+test('quarantine policy registry exposes deterministic immutable snapshot', () => {
+  const registry = new ReconciliationQuarantinePolicyRegistry();
+  registry.register({ ...approvedSignalsPolicy, providerId: 'provider-zeta' });
+  registry.register({
+    ...approvedSignalsPolicy,
+    providerId: 'provider-alpha',
+    status: 'DRAFT',
+    allowedRoles: ['RECONCILIATION_AUDITOR'],
+  });
+
+  const snapshot = registry.snapshot();
+
+  assert.deepEqual(
+    snapshot.map((policy) => policy.providerId),
+    ['provider-alpha', 'provider-zeta'],
+  );
+  assert.equal(Object.isFrozen(snapshot), true);
+  assert.equal(Object.isFrozen(snapshot[0]), true);
+  assert.equal(Object.isFrozen(snapshot[0].allowedRoles), true);
+
+  assert.throws(() => snapshot.push(approvedSignalsPolicy), TypeError);
+  assert.throws(() => snapshot[0].allowedRoles.push('MUTATED'), TypeError);
+});
+
+test('quarantine policy registry snapshot is detached from subsequent registrations', () => {
+  const registry = new ReconciliationQuarantinePolicyRegistry();
+  registry.register({ ...approvedSignalsPolicy, providerId: 'provider-first' });
+
+  const firstSnapshot = registry.snapshot();
+  registry.register({ ...approvedSignalsPolicy, providerId: 'provider-second' });
+  const secondSnapshot = registry.snapshot();
+
+  assert.equal(firstSnapshot.length, 1);
+  assert.equal(secondSnapshot.length, 2);
+  assert.deepEqual(
+    firstSnapshot.map((policy) => policy.providerId),
+    ['provider-first'],
+  );
+});
